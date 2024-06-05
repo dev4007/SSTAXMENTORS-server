@@ -3891,7 +3891,7 @@ route.post("/register", async (req, res, next) => {
 
       // Save the user to the database
       await newUser.save();
-      const verificationLink = `http://localhost:3000/admin/verify?token=${verificationToken}`
+      const verificationLink = `https://www.sstaxmentors.com/admin/verify?token=${verificationToken}`
 
       const from = await AdminEmail.findOne({ status: true });
 
