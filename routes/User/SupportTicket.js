@@ -17,7 +17,7 @@ const authenticate = require("../../middlewares/authenticate");
 const Razorpay = require("razorpay");
 const Transaction = require("../../models/Transaction");
 const admin = require("firebase-admin");
-const serviceAccount = require("../../privatekey.json"); // Replace with your Firebase service account key
+// const serviceAccount = require("../../privatekey.json"); // Replace with your Firebase service account key
 
 const mongoose = require("../../Config/Connection");
 const Notification = require("../../models/Notification");

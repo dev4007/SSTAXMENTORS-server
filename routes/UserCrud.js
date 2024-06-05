@@ -16,7 +16,7 @@ const authenticate = require("../middlewares/authenticate");
 const Razorpay = require("razorpay");
 const Transaction = require("../models/Transaction");
 const admin = require("firebase-admin");
-const serviceAccount = require("../privatekey.json"); // Replace with your Firebase service account key
+// const serviceAccount = require("../privatekey.json"); // Replace with your Firebase service account key
 
 const mongoose = require("../Config/Connection");
 const Notification = require("../models/Notification");
@@ -43,10 +43,8 @@ const conn = mongoose.connection;
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 const Reminder = require("../models/Reminder");
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  storageBucket: "gs://test-caf7b.appspot.com", // Replace with your Firebase Storage bucket URL
-});
+
+
 
 // conn.once('open', () => {const conn = mongoose.connection;
 
