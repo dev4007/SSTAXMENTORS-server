@@ -307,7 +307,7 @@ route.get("/previewkycAE/:filename", authenticate, async (req, res, next) => {
       // Save history entry within the transaction
       await history.save({ session });
   
-      const bucket = new mongoose.mongo.GridFSBucket(conn.db, {
+      const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
         bucketName: "kyc",
       });
   
