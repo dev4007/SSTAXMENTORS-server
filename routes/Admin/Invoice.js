@@ -90,25 +90,53 @@ route.get("/getInvoiceId", async (req, res) => {
   }
 });
 
-route.get("/viewbill", authenticate, async (req, res, next) => {
-  // Display the unpaid bills
-  try {
-    const bills = await Payment.find().sort({ timestamp: -1 }).populate("user");
-    console.log(bills);
-    const modifiedResponse = {
-      bills: bills.map((bill) => ({
-        amount: bill.amount,
-        userEmail: bill.user ? bill.user.email : "Unknown", // Check if user is null
-        timestamp: bill.timestamp,
-        createdBy: bill.createdBy,
-      })),
-    };
-    res.status(200).json(modifiedResponse); // Send modifiedResponse directly without nesting it in another object
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
+// route.get("/viewbill", authenticate, async (req, res, next) => {
+//   // Display the unpaid bills
+//   try {
+//     const bills = await Payment.find().sort({ timestamp: -1 }).populate("user");
+//     console.log(bills);
+//     const modifiedResponse = {
+//       bills: bills.map((bill) => ({
+//         amount: bill.amount,
+//         userEmail: bill.user ? bill.user.email : "Unknown", // Check if user is null
+//         timestamp: bill.timestamp,
+//         createdBy: bill.createdByRole,
+//       })),
+//     };
+//     res.status(200).json(modifiedResponse); // Send modifiedResponse directly without nesting it in another object
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
+
+
+// route.get("/viewbill", authenticate, async (req, res, next) => {
+//   // Display the unpaid bills
+//   try {
+//     // Update the createdByRole field for all bills
+//     await Payment.updateMany(
+//       { createdByRole: { $exists: false } }, // Condition to only update documents where createdByRole does not exist
+//       { $set: { createdByRole: "employee" } } // Set the createdByRole field to "employee"
+//     );
+
+//     const bills = await Payment.find().sort({ timestamp: -1 }).populate("user");
+
+//     const modifiedResponse = {
+//       bills: bills.map((bill) => ({
+//         amount: bill.amount,
+//         userEmail: bill.user ? bill.user.email : "Unknown", // Check if user is null
+//         timestamp: bill.timestamp,
+//         createdBy: bill.createdByRole,
+//       })),
+//     };
+
+//     res.status(200).json(modifiedResponse); // Send modifiedResponse directly without nesting it in another object
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
 
 route.post(
   "/generateBill",
@@ -163,6 +191,7 @@ route.post(
               subService,
               companyName,
               files: [], // Initialize files array
+              createdByRole: role, // Set the role of the user creating the invoice
             });
 
             // Fetch user email from query parameters

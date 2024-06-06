@@ -33,6 +33,7 @@ const paymentSchema = new mongoose.Schema({
   },
   companyName: String,
   // Reference to transaction
+  createdByRole: String, // Add this field
 });
 
 module.exports = mongoose.model('Payment', paymentSchema);
