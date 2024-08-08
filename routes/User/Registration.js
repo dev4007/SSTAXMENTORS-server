@@ -136,7 +136,7 @@ route.post("/register", async (req, res, next) => {
         }
         const transporterInstance = await createTransporter();
 
-        const verificationLink = `http://localhost:3000/user/verify?token=${verificationToken}`;
+        const verificationLink = `https://www.sstaxmentors.com/user/verify?token=${verificationToken}`;
         const mailOptions = {
           from: from.email,
           to: email,
