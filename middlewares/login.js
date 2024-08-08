@@ -116,7 +116,7 @@ router.post("/forgot-password", async (req, res, next) => {
     const emailSettings = await EmailSettings.findOne({
       title: "Reset Password",
     });
-    const relink=`https://www.sstaxmentors.com/login/reset-password?token=${token}`
+    const relink=`http://localhost:3000/login/reset-password?token=${token}`
     // console.log(from.email)
     var mailOptions = {
       from: from.email,

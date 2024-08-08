@@ -43,6 +43,7 @@ const conn = mongoose.connection;
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 const Reminder = require("../models/Reminder");
+const path = require("path");
 
 
 
@@ -185,7 +186,6 @@ route.get("/viewBill", authenticate, async (req, res, next) => {
   if (req.user.role === "user") {
     let temp;
     try {
-      console.log("hello");
       temp = await payment.find({ user: req.user._id });
       // let currentuser=await registration.findById(temp.user)
       // console.log(currentuser.firstname)
@@ -303,8 +303,7 @@ route.post(
   "/addcompany",
   authenticate,
   upload.fields([
-    { name: "documentFiles", maxCount: 10 },
-    { name: "companyTypeFiles", maxCount: 10 },
+    { name: "companyTypeFiles", maxCount: 10 }, // Only companyTypeFiles are handled
   ]),
   async (req, res, next) => {
     const session = await mongoose.startSession();
@@ -312,14 +311,13 @@ route.post(
 
     try {
       const { companyName, officeNumber } = req.body;
-      // console.log(address)
       const companyType = JSON.parse(req.body.companyType);
       const subInputValues = JSON.parse(req.body.subInputValues);
       const address = JSON.parse(req.body.address);
       console.log(subInputValues);
       const companyData = {
         companyName,
-        companyType: companyType,
+        companyType,
         address,
         officeNumber,
         subInputValues,
@@ -330,36 +328,6 @@ route.post(
 
       // Save the company schema
       await company.save({ session });
-
-      // Save metadata and data for document files
-      for (const file of req.files["documentFiles"]) {
-        const uniqueFilename = generateUniqueFilename(
-          company._id,
-          file.originalname
-        );
-
-        // Save metadata in the company schema
-        company.documentFiles.push({
-          name: file.originalname,
-          type: file.mimetype,
-          size: file.size,
-          filename: uniqueFilename,
-        });
-
-        // Save file data in the "company" bucket in GridFS
-        const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
-          bucketName: "company",
-        });
-
-        const readableStream = new Readable();
-        readableStream.push(file.buffer);
-        readableStream.push(null);
-        const uploadStream = bucket.openUploadStream(uniqueFilename, {
-          _id: company._id,
-        });
-
-        readableStream.pipe(uploadStream);
-      }
 
       // Save metadata and data for company type files
       for (const file of req.files["companyTypeFiles"]) {
@@ -392,7 +360,7 @@ route.post(
       }
 
       console.log(
-        "Company data, document files, and company type files stored in the database:"
+        "Company data and company type files stored in the database:"
       );
 
       await company.save({ session });
@@ -487,6 +455,7 @@ route.get("/getCompanyDetails", authenticate, async (req, res) => {
 });
 
 route.get("/getCompanyNameOnlyDetails", authenticate, async (req, res) => {
+  console.log("hey")
   try {
     const userEmail = req.user.email;
     // const companyname = req.params.company
@@ -744,6 +713,7 @@ route.get("/getgstdoc/:companyName", authenticate, async (req, res, next) => {
     console.log(email);
 
     const gstRecord = await GSTR.findOne({ companyName, email });
+    console.log("🚀 ~ route.get ~ gstRecord:", gstRecord)
 
     if (!gstRecord) {
       return res
@@ -764,7 +734,7 @@ route.get("/getgstdoc/:companyName", authenticate, async (req, res, next) => {
 
 route.get("/downloadGSTR/:filename", authenticate, async (req, res, next) => {
   try {
-    console.log("hello");
+
     const { filename } = req.params;
 
     const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
@@ -800,18 +770,35 @@ route.get("/previewGSTR/:filename", authenticate, async (req, res, next) => {
     });
 
     const downloadStream = bucket.openDownloadStreamByName(filename);
-    res.set("Content-Type", "application/pdf");
+    
+    // Determine content type based on file extension
+    const ext = path.extname(filename).toLowerCase();
+    let contentType = "application/octet-stream"; // Default content type
+
+    if (ext === ".pdf") {
+      contentType = "application/pdf";
+    } else if ([".jpg", ".jpeg", ".png", ".gif"].includes(ext)) {
+      contentType = `image/${ext === ".jpg" ? "jpeg" : ext.substring(1)}`; // Set appropriate image type
+    }
+
+    res.set("Content-Type", contentType);
 
     // Pipe the file data to the response
-    downloadStream.pipe(res);
+    downloadStream.pipe(res).on('error', (error) => {
+      console.error("Error piping stream:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+    });
+    
+    downloadStream.on('error', (error) => {
+      console.error("Error streaming file:", error);
+      if (error.code === "ENOENT") {
+        console.error(`File not found: ${filename}`);
+        return res.status(404).json({ error: "File not found" });
+      }
+      res.status(500).json({ error: "Internal Server Error" });
+    });
   } catch (error) {
     console.error("Error previewing IT Returns file:", error);
-
-    if (error.code === "ENOENT") {
-      console.error(`File not found: ${filename}`);
-      return res.status(404).json({ error: "File not found" });
-    }
-    console.error("Internal Server Error:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
@@ -1293,7 +1280,7 @@ route.post("/register", async (req, res, next) => {
         return res.status(500).json({ message: "Email not found" });
       }
       const transporterInstance = await createTransporter();
-      const verificationLink = `https://www.sstaxmentors.com/user/verify?token=${verificationToken}`;
+      const verificationLink = `http://localhost:3000/user/verify?token=${verificationToken}`;
       const mailOptions = {
         from: from.email,
         to: email,
@@ -2260,6 +2247,7 @@ route.get("/download/:filename", (req, res) => {
 route.post("/verify", async (req, res, next) => {
   const token = req.body.token;
 
+
   try {
     const decoded = jwt.verify(token, "your-secret-key");
     const existingUser = await user.findOne({
@@ -2288,6 +2276,11 @@ route.post("/verify", async (req, res, next) => {
     await existingUser.save();
     // const from = 'yvishnuvamsith@gmail.com';
     // let cl=`whatsapp:+91${existingUser.Phone_number}`
+
+      // Generate a new token for login
+      const loginToken = jwt.sign({ email: existingUser.email, id: existingUser._id }, "your-secret-key", { expiresIn: "1h" });
+   
+
     const mailOptions = {
       from: from.email,
       to: decoded.email,
@@ -2309,7 +2302,10 @@ route.post("/verify", async (req, res, next) => {
     //         to: cl
     //     });
     // console.log(message.id)
-    res.status(200).json({ message: "Email verified successfully." });
+    // res.status(200).json({ message: "Email verified successfully." });
+        
+    res.status(200).json({ message: "Email verified successfully.", token: loginToken });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal Server Error" });
@@ -2352,50 +2348,7 @@ route.post("/reset", authenticate, async (req, res, next) => {
 route.get("/profile", authenticate, (req, res, next) => {
   let role = req.user.role;
   let user = req.user;
-  console.log(role);
-  console.log(req.user);
-  if (role === "user") {
-    // Extracting fields from req.user to be sent to the frontend
-    const {
-      firstname,
-      lastname,
-      DOB,
-      address,
-      streetname,
-      city,
-      landmark,
-      state,
-      // companyname,
-      country,
-      email,
-      Phone_number,
-      role,
-      // companyType,
-      // destination,
-      // officenumber
-    } = req.user;
-
-    // Sending the extracted fields to the frontend
-    res.status(200).json({
-      user,
-      // firstname,
-      // lastname,
-      // DOB,
-      // address,
-      // streetname,
-      // city,
-      // landmark,
-      // state,
-      // companyname,
-      // country,
-      // email,
-      // Phone_number,
-      // role,
-      // companyType,
-      // destination,
-      // officenumber
-    });
-  }
+  console.log("🚀 ~ route.get ~ user:", user)
 });
 
 // route.get('/profile', authenticate, (req, res, next) => {

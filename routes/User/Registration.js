@@ -90,7 +90,6 @@ route.post("/register", async (req, res, next) => {
     const Phone_number = req.body.phone;
     const DOB = req.body.dob;
     const {
-      // dob,
       hno,
       city,
       landmark,
@@ -136,7 +135,8 @@ route.post("/register", async (req, res, next) => {
           return res.status(500).json({ message: "Email not found" });
         }
         const transporterInstance = await createTransporter();
-        const verificationLink = `https://www.sstaxmentors.com/user/verify?token=${verificationToken}`;
+
+        const verificationLink = `http://localhost:3000/user/verify?token=${verificationToken}`;
         const mailOptions = {
           from: from.email,
           to: email,

@@ -54,7 +54,7 @@ async function getEmailAddress() {
     return { email: adminEmail.email, password: adminEmail.password };
   } catch (error) {
     console.error("Error fetching email address:", error);
-    throw error; 
+    throw error;
   }
 }
 
@@ -71,71 +71,82 @@ async function createTransporter() {
     });
   } catch (error) {
     console.error("Error creating transporter:", error);
-    throw error; 
+    throw error;
   }
 }
-  
-
 
 route.post("/verify", async (req, res, next) => {
-    const token = req.body.token;
-  
-    try {
-      const decoded = jwt.verify(token, "your-secret-key");
-      const existingUser = await user.findOne({
-        email: decoded.email,
-        token: token,
-      });
-  
-      if (!existingUser) {
-        return res
-          .status(404)
-          .json({ message: "User not found or invalid token" });
-      }
-  
-      const emailSettings = await EmailSettings.findOne({
-        title: "User Registration Thankyou Mail",
-      });
-  
-      const subject = emailSettings.subject;
-      const text = emailSettings.text;
-  
-      const from = await AdminEmail.findOne({ status: true });
-      const transporterInstance = await createTransporter();
-      // Mark the user as verified
-      existingUser.isverified = true;
-      existingUser.token = undefined;
-      await existingUser.save();
-      // const from = 'yvishnuvamsith@gmail.com';
-      // let cl=`whatsapp:+91${existingUser.Phone_number}`
-      const mailOptions = {
-        from: from.email,
-        to: decoded.email,
-        subject: subject,
-        html: `
+  const token = req.body.token;
+
+  try {
+    const decoded = jwt.verify(token, "your-secret-key");
+    console.log("🚀 ~ route.post ~ decoded:", decoded.email)
+    const existingUser = await user.findOne({
+      email: decoded.email,
+      token: token,
+    });
+
+    if (!existingUser) {
+      return res
+        .status(404)
+        .json({ message: "User not found or invalid token" });
+    }
+
+    const emailSettings = await EmailSettings.findOne({
+      title: "User Registration Thankyou Mail",
+    });
+
+    const subject = emailSettings.subject;
+    const text = emailSettings.text;
+
+    const from = await AdminEmail.findOne({ status: true });
+    const transporterInstance = await createTransporter();
+    // Mark the user as verified
+    existingUser.isverified = true;
+    existingUser.token = undefined;
+    await existingUser.save();
+    // const from = 'yvishnuvamsith@gmail.com';
+    // let cl=`whatsapp:+91${existingUser.Phone_number}`
+
+    // Generate a new token for login
+    const TokenVerify = jwt.sign(
+      { email: existingUser.email, role: existingUser.role },
+      "your-secret-key",
+      { expiresIn: "1h" }
+    );
+    existingUser.token = TokenVerify;
+    await existingUser.save();
+
+    const mailOptions = {
+      from: from.email,
+      to: existingUser.email,
+      subject: subject,
+      html: `
           <div style="background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
             <h2 style="font-size: 24px; font-weight: bold; color: #333333; text-align: center; margin-bottom: 16px;">Email Verified!</h2>
             <p style="font-size: 16px; color: #666666; text-align: center;">${text}</p>
           </div>
         `,
-      };
-  
-      //
-  
-      await transporterInstance.sendMail(mailOptions);
-      //  const message = await client.messages.create({
-      //         body: 'Verification was successful',
-      //         from: 'whatsapp:+14155238886',
-      //         to: cl
-      //     });
-      // console.log(message.id)
-      res.status(200).json({ message: "Email verified successfully." });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Internal Server Error" });
-    }
-  });
-  
+    };
 
+    //
+
+    await transporterInstance.sendMail(mailOptions);
+    //  const message = await client.messages.create({
+    //         body: 'Verification was successful',
+    //         from: 'whatsapp:+14155238886',
+    //         to: cl
+    //     });
+    // console.log(message.id)
+    res.status(200).json({
+      message: "Email verified successfully.",
+      token: TokenVerify,
+      userType: existingUser.role,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
 
 module.exports = route;

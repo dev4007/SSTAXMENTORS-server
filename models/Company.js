@@ -24,7 +24,7 @@ const companySchema = new mongoose.Schema({
     }
   },
   companyTypeFiles: [fileSchema], // Storing file metadata
-  documentFiles: [fileSchema], // Storing file metadata
+  // documentFiles: [fileSchema], // Storing file metadata
   address: {
     type: Object,
     required: true

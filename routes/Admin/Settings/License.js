@@ -5,7 +5,7 @@ const AdminLicense = require("../../../models/AdminLicences");
 
 route.get("/Licensesnames", async (req, res) => {
     try {
-      console.log("hello");
+
       const names = await AdminLicense.find({}, "name description status");
       console.log(names);
       res.json(names);

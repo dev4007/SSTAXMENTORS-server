@@ -45,21 +45,10 @@ const transactionSchema = new mongoose.Schema({
     },
     paymentMethod: {
         type: String,
-        enum: ['Google Pay', 'Phone Pay','Paytm'],
+        enum: ['Google Pay', 'Phone Pay','Paytm',"Bank Pay Account"],
         required: true
     },
-    files: [
-        {
-            filename: {
-                type: String,
-                required: true,
-            },
-            fileId: {
-                type: mongoose.Schema.Types.ObjectId,
-                required: true,
-            },
-        },
-    ],
+   
 }, { timestamps: true });
 
 const Transaction = mongoose.model('Transaction', transactionSchema);

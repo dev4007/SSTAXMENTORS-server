@@ -47,16 +47,20 @@ const upload = multer({ storage: storage });
 const Reminder = require("../../models/Reminder");
 
 route.post("/viewBill", authenticate, async (req, res, next) => {
+
     if (req.user.role === "user") {
       let temp;
       try {
         temp = await payment.find({ user: req.user._id }).sort({ timestamp: -1 });
+        const userData = await payment.find({user: req.user})
+
+       
         // let currentuser=await registration.findById(temp.user)
         // console.log(currentuser.firstname)
         if (!temp) {
           res.status(200).json({ message: "no bill to be paid" });
         } else {
-          res.status(200).json({ temp });
+          res.status(200).json({ temp});
         }
       } catch (err) {
         console.log(err);
@@ -70,11 +74,10 @@ route.post("/viewBill", authenticate, async (req, res, next) => {
     if (req.user.role === "user") {
       let temp;
       try {
-        console.log("hello");
+     
         temp = await payment.find({ user: req.user._id });
-        // let currentuser=await registration.findById(temp.user)
-        // console.log(currentuser.firstname)
-        console.log(temp);
+     
+      
         if (!temp) {
           res.status(200).json({ message: "no bill to be paid" });
         } else {
@@ -95,7 +98,7 @@ route.post("/viewBill", authenticate, async (req, res, next) => {
         const { invoiceNumber, transactionId, amountPaid, duedate, description, payment,paymentMethod  } = req.body;
 
           // Validate payment method
-          if (!['Google Pay', 'Phone Pay', 'Paytm'].includes(paymentMethod)) {
+          if (!['Google Pay', 'Phone Pay', 'Paytm','Bank Pay Account'].includes(paymentMethod)) {
             return res.status(400).json({ message: 'Invalid payment method' });
         }
 
@@ -112,26 +115,6 @@ route.post("/viewBill", authenticate, async (req, res, next) => {
             payment: payment,
             paymentMethod: paymentMethod // Save the payment method
         });
-
-        // Save uploaded files
-        for (const file of req.files) {
-            const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
-                bucketName: 'transaction_files',
-            });
-
-            const readableStream = new Readable();
-            readableStream.push(file.buffer);
-            readableStream.push(null);
-            const uploadStream = bucket.openUploadStream(file.originalname);
-
-            readableStream.pipe(uploadStream);
-            
-            // Save file metadata in the transaction schema
-            newTransaction.files.push({
-                filename: file.originalname,
-                fileId: uploadStream.id,
-            });
-        }
 
         await newTransaction.save();
 

@@ -1135,7 +1135,7 @@ route.post("/addnewLicensefield", async (req, res) => {
 
 route.get("/Licensesnames", async (req, res) => {
   try {
-    console.log("hello");
+ 
     const names = await AdminLicense.find({}, "name description status");
     console.log(names);
     res.json(names);
@@ -3891,7 +3891,8 @@ route.post("/register", async (req, res, next) => {
 
       // Save the user to the database
       await newUser.save();
-      const verificationLink = `https://www.sstaxmentors.com/admin/verify?token=${verificationToken}`
+      const verificationLink = `http://localhost:3000/admin/verify?token=${verificationToken}`
+      const loginUrl = `http://localhost:3000/user/login?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
 
       const from = await AdminEmail.findOne({ status: true });
 
@@ -3900,8 +3901,13 @@ route.post("/register", async (req, res, next) => {
       const mailOptions = {
         from: from.email,
         to: email,
-        subject: "Verify Your Email",
-        text: `Click the following link to verify your email: ${verificationLink}`,
+        subject: subject,
+        html: `
+          <p>${text}</p>
+          <p><a href="${verificationLink}">Click here to verify your email</a></p>
+          <p>Or, you can log in directly using the button below:</p>
+          <a href="${loginUrl}" style="display:inline-block; padding:10px 20px; background-color:#4CAF50; color:white; text-align:center; text-decoration:none; border-radius:5px;">Login Directly</a>
+        `,
       };
 
       await transporterInstance.sendMail(mailOptions);
