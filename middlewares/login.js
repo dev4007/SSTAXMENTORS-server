@@ -11,7 +11,7 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const AdminEmail = require("../models/AdminEmail");
 const EmailSettings = require("../models/EmailSettings");
-
+require("dotenv").config();
 // router.post('/login', async (req, res, next) => {
 //     const email = req.body.email
 //     const password = req.body.password
@@ -116,7 +116,7 @@ router.post("/forgot-password", async (req, res, next) => {
     const emailSettings = await EmailSettings.findOne({
       title: "Reset Password",
     });
-    const relink=`https://www.sstaxmentors.com/login/reset-password?token=${token}`
+    const relink=`${process.env.API_URL}/login/reset-password?token=${token}`
     // console.log(from.email)
     var mailOptions = {
       from: from.email,
@@ -142,8 +142,12 @@ router.post("/forgot-password", async (req, res, next) => {
 });
 
 router.post("/login", async (req, res, next) => {
+  console.log("hi")
+  const hashedPassword = await bcrypt.hash(req.body.password, 10);
+  console.log(hashedPassword)
   const email = req.body.email;
   const password = req.body.password;
+
   const role = req.body.userType;
   const latitude = req.body.latitude;
   const longitude = req.body.longitude;

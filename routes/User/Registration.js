@@ -49,7 +49,7 @@ const User=require("../../models/registration")
 const conn = mongoose.connection;
 
 const upload = multer();
-
+require("dotenv").config();
 
 async function getEmailAddress() {
   try {
@@ -136,7 +136,7 @@ route.post("/register", async (req, res, next) => {
         }
         const transporterInstance = await createTransporter();
 
-        const verificationLink = `https://www.sstaxmentors.com/user/verify?token=${verificationToken}`;
+        const verificationLink = `${process.env.API_URL}/user/verify?token=${verificationToken}`;
         const mailOptions = {
           from: from.email,
           to: email,

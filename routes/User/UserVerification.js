@@ -93,10 +93,12 @@ route.post("/verify", async (req, res, next) => {
     }
 
     const emailSettings = await EmailSettings.findOne({
-      title: "User Registration Thankyou Mail",
+      subject: "Verify Your Email!!!",
     });
+    console.log("🚀 ~ route.post ~ emailSettings:", emailSettings)
 
     const subject = emailSettings.subject;
+    console.log("🚀 ~ route.post ~ subject:", subject)
     const text = emailSettings.text;
 
     const from = await AdminEmail.findOne({ status: true });

@@ -45,7 +45,7 @@ const upload = multer({ storage: storage });
 const Reminder = require("../models/Reminder");
 const path = require("path");
 
-
+require("dotenv").config();
 
 // conn.once('open', () => {const conn = mongoose.connection;
 
@@ -1280,7 +1280,7 @@ route.post("/register", async (req, res, next) => {
         return res.status(500).json({ message: "Email not found" });
       }
       const transporterInstance = await createTransporter();
-      const verificationLink = `https://www.sstaxmentors.com/user/verify?token=${verificationToken}`;
+      const verificationLink = `${process.env.API_URL}}/user/verify?token=${verificationToken}`;
       const mailOptions = {
         from: from.email,
         to: email,

@@ -1,6 +1,7 @@
 const express = require("express");
 const route = express.Router();
 const bcrypt = require("bcrypt");
+const path = require("path");
 const nodemailer = require("nodemailer");
 const user = require("../../models/registration");
 const employee = require("../../models/employee");
@@ -40,8 +41,8 @@ const payment = require("../../models/payment");
 const Grid = require("gridfs-stream");
 const History = require("../../models/History");
 const conn = mongoose.connection;
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const upload = require("./../../middlewares/uploadMiddleware"); // Import the upload middleware
+
 const Reminder = require("../../models/Reminder");
 
 const generateUniqueFilename = (commonFileId, originalFilename) => {
@@ -55,9 +56,11 @@ route.get(
     try {
       const { filename } = req.params;
       const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
-        bucketName: "company",
+        bucketName: "companyFiles",
       });
+      console.log("🚀 ~ bucket:", bucket)
       const downloadStream = bucket.openDownloadStreamByName(filename);
+  
       res.set("Content-Type", "application/pdf");
       downloadStream.pipe(res);
     } catch (error) {
@@ -69,6 +72,24 @@ route.get(
     }
   }
 );
+
+route.get("/previewFile/:filename", authenticate, async (req, res, next) => {
+  try {
+    const { filename } = req.params;
+    const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+      bucketName: "company",
+    });
+    const downloadStream = bucket.openDownloadStreamByName(filename);
+    res.set("Content-Type", "application/pdf");
+    downloadStream.pipe(res);
+  } catch (error) {
+    console.error("Error previewing company file:", error);
+    if (error.name === "FileNotFound") {
+      return res.status(404).json({ error: "Company file not found" });
+    }
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 
 route.get(
   "/downloadCompanyFile/:filename",
@@ -96,9 +117,12 @@ route.post(
   "/addcompany",
   authenticate,
   upload.fields([
-    { name: "companyTypeFiles", maxCount: 10 }, // Only companyTypeFiles are handled
+    { name: "companyTypeFiles", maxCount: 10 }, // Handle companyTypeFiles
+    { name: "GST", maxCount: 1 }, // Add these if you handle these fields separately
+    { name: "PAN", maxCount: 1 },
+    { name: "VAN", maxCount: 1 },
   ]),
-  async (req, res, next) => {
+  async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -107,7 +131,7 @@ route.post(
       const companyType = JSON.parse(req.body.companyType);
       const subInputValues = JSON.parse(req.body.subInputValues);
       const address = JSON.parse(req.body.address);
-      console.log(subInputValues);
+
       const companyData = {
         companyName,
         companyType,
@@ -118,59 +142,96 @@ route.post(
       };
 
       const company = new Company(companyData);
+      console.log("🚀 ~ company:", company)
 
+      // Initialize filenames object
+      const filenames = {};
       // Save the company schema
       await company.save({ session });
 
-      // Save metadata and data for company type files
-      for (const file of req.files["companyTypeFiles"]) {
-        const uniqueFilename = generateUniqueFilename(
-          company._id,
-          file.originalname
-        );
+      // Process companyTypeFiles
+      if (req.files["companyTypeFiles"]) {
+        for (const file of req.files["companyTypeFiles"]) {
+          const uniqueFilename = generateUniqueFilename(
+            company._id,
+            file.originalname
+          );
 
-        // Save metadata in the company schema
-        company.companyTypeFiles.push({
-          name: file.originalname,
-          type: file.mimetype,
-          size: file.size,
-          filename: uniqueFilename,
-        });
+          // Save metadata in the company schema
+          company.companyTypeFiles.push({
+            name: file.originalname,
+            type: file.mimetype,
+            size: file.size,
+            filename: uniqueFilename,
+          });
 
-        // Save file data in the "company" bucket in GridFS
-        const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
-          bucketName: "company",
-        });
+          // Save file data in GridFS
+          const bucket = new mongoose.mongo.GridFSBucket(
+            mongoose.connection.db,
+            {
+              bucketName: "company",
+            }
+          );
 
-        const readableStream = new Readable();
-        readableStream.push(file.buffer);
-        readableStream.push(null);
-        const uploadStream = bucket.openUploadStream(uniqueFilename, {
-          _id: company._id,
-        });
+          const readableStream = new Readable();
+          readableStream.push(file.buffer);
+          readableStream.push(null);
+          const uploadStream = bucket.openUploadStream(uniqueFilename, {
+            _id: company._id,
+          });
 
-        readableStream.pipe(uploadStream);
+          readableStream.pipe(uploadStream);
+        }
       }
 
-        // Create GST registration entry
-        const gstDocument = new GSTR({
-          companyName: companyName,
-          files: company.companyTypeFiles.map(file => ({
-            filename: file.filename,
-            fileId: new mongoose.Types.ObjectId(), // Replace with the actual file ID if needed
-          })),
-    
-          email: req.user.email,
-        });
+      for (const fieldname of ["companyTypeFiles", "GST", "PAN", "VAN"]) {
+        if (req.files[fieldname]) {
+          filenames[fieldname] = [];
 
-              // Save the GST registration
-      await gstDocument.save({ session });
+          for (const file of req.files[fieldname]) {
+            const uniqueFilename = file.filename;
+      
 
-      console.log(
-        "Company data and company type files stored in the database:"
-      );
 
-      await company.save({ session });
+            // Update company schema
+            if (fieldname === "companyTypeFiles") {
+              company.companyTypeFiles.push({
+                name: file.originalname,
+                type: file.mimetype,
+                size: file.size,
+                filename: uniqueFilename,
+              });
+            }
+
+       
+            // Save file data in GridFS
+            const bucket = new mongoose.mongo.GridFSBucket(
+              mongoose.connection.db,
+              {
+                bucketName: "companyFiles",
+              }
+            );
+
+            
+
+            const readableStream = new Readable();
+            readableStream.push(file.buffer);
+            readableStream.push(null);
+            const uploadStream = bucket.openUploadStream(uniqueFilename, {
+              _id: company._id,
+            });
+         
+            readableStream.pipe(uploadStream);
+        
+            // Update filenames
+           filenames[fieldname].push(uniqueFilename);
+         
+          }
+        }
+      }
+
+      // Save company data with file metadata
+  await company.save({ session });
 
       await session.commitTransaction();
       session.endSession();
@@ -190,7 +251,7 @@ route.get("/getCompanyDetails", authenticate, async (req, res) => {
     // Assuming you are using JWT and the user email is available in req.user.email
     const userEmail = req.user.email;
 
-    const companies = await Company.find({ email: userEmail })
+    const companies = await Company.find({ email: userEmail });
 
     // If you have a specific response format, you can adjust it here
     res.status(200).json(companies);
@@ -260,19 +321,12 @@ route.post("/deleteCompany", authenticate, async (req, res) => {
 });
 
 route.get("/getCompanyNameOnlyDetails", authenticate, async (req, res) => {
-
   try {
     const userEmail = req.user.email;
     // const companyname = req.params.company
 
     const companies = await Company.find({ email: userEmail });
-    const companyNames = companies.map((company) => ({
-      companyName: company.companyName,
-      companyType: company.companyType // Adjust this if your structure is different
-    }));
-    console.log("🚀 ~ companyNames ~ companyNames:", companyNames)
-
-
+    const companyNames = companies.map((company) => company.companyName);
     // If you have a specific response format, you can adjust it here
     res.status(200).json(companyNames);
   } catch (error) {

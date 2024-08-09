@@ -45,7 +45,7 @@ const AdminAddOnService = require("../models/AdminAddOnService");
 const AddOnService = require("../models/AddOnService");
 const cron = require("node-cron");
 const User=require("../models/registration")
-
+require("dotenv").config();
 const conn = mongoose.connection;
 
 const upload = multer();
@@ -3891,8 +3891,8 @@ route.post("/register", async (req, res, next) => {
 
       // Save the user to the database
       await newUser.save();
-      const verificationLink = `https://www.sstaxmentors.com/admin/verify?token=${verificationToken}`
-      const loginUrl = `https://www.sstaxmentors.com/user/login?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
+      const verificationLink = `${process.env.API_URL}/admin/verify?token=${verificationToken}`
+      const loginUrl = `${process.env.API_URL}/user/login?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
 
       const from = await AdminEmail.findOne({ status: true });
 

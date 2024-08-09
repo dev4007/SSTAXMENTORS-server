@@ -75,7 +75,7 @@ const userPayment = require('./routes/User/Payment.js')
 const userRegistration= require('./routes/User/Registration.js')
 const userReminder= require('./routes/User/Reminder.js')
 
-
+require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 5002;
