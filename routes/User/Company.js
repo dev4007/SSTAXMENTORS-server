@@ -324,7 +324,6 @@ route.get("/getCompanyNameOnlyDetails", authenticate, async (req, res) => {
   try {
     const userEmail = req.user.email;
     // const companyname = req.params.company
-
     const companies = await Company.find({ email: userEmail });
     const companyNames = companies.map((company) => company.companyName);
     // If you have a specific response format, you can adjust it here
@@ -335,4 +334,25 @@ route.get("/getCompanyNameOnlyDetails", authenticate, async (req, res) => {
   }
 });
 
+route.get("/getCompanyRCODetails", authenticate, async (req, res) => {
+
+  try {
+    const userEmail = req.user.email;
+    // const companyname = req.params.company
+
+    const companies = await Company.find({ email: userEmail });
+    const companyNames = companies.map((company) => ({
+      companyName: company.companyName,
+      companyType: company.companyType // Adjust this if your structure is different
+    }));
+    console.log("🚀 ~ companyNames ~ companyNames:", companyNames)
+
+
+    // If you have a specific response format, you can adjust it here
+    res.status(200).json(companyNames);
+  } catch (error) {
+    console.error("Error fetching company details:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 module.exports = route;

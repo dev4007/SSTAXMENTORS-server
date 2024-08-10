@@ -7,20 +7,25 @@ const Employeeatten = require("../../models/employeeatten");
 
 route.get("/getEmployeeId", authenticate, async (req, res) => {
   try {
-    // Step 1: Find the employee with the highest ID using aggregation
     const highestEmployee = await employee.aggregate([
       {
         $project: {
           EmployeeId: 1,
-          numericId: { $toInt: { $substr: ["$EmployeeId", 3, -1] } } // Extracts the numeric part and converts to an integer
+          numericId: {
+            $convert: {
+              input: { $substr: ["$EmployeeId", 3, -1] },
+              to: "int",
+              onError: -1 // Handles conversion errors
+            }
+          }
         }
       },
-      { $sort: { numericId: -1 } }, // Sorts by the numeric part in descending order
-      { $limit: 1 } // Limits the result to the highest ID
+      { $match: { numericId: { $ne: -1 } } }, // Excludes invalid entries
+      { $sort: { numericId: -1 } }, // Sorts by numeric part
+      { $limit: 1 } // Limits to the highest ID
     ]);
 
-    // Step 2: Generate the next EmployeeId
-    let nextEmployeeId = "EMP1"; // Default if there are no employees
+    let nextEmployeeId = "EMP1"; // Default ID if no valid employee is found
 
     if (highestEmployee.length > 0) {
       const highestNumericId = highestEmployee[0].numericId;
@@ -28,14 +33,13 @@ route.get("/getEmployeeId", authenticate, async (req, res) => {
       nextEmployeeId = `EMP${nextNumericId}`;
     }
 
-    // console.log("🚀 ~ route.get ~ nextEmployeeId:", nextEmployeeId);
-
     res.status(200).json({ EmployeeId: nextEmployeeId });
   } catch (error) {
     console.error("Error generating new employee ID:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
 
 
 
