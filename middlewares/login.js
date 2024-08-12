@@ -87,7 +87,7 @@ async function createTransporter() {
 router.post("/forgot-password", async (req, res, next) => {
   const email = req.body.email;
   const role = req.body.userType;
-  console.log(email, role);
+ 
 
   try {
     let existingUser;
@@ -99,7 +99,7 @@ router.post("/forgot-password", async (req, res, next) => {
       existingUser = await adminmodel.findOne({ email: email });
     }
 
-    console.log(existingUser);
+    
     if (!existingUser) {
       return res
         .status(401)
@@ -142,17 +142,16 @@ router.post("/forgot-password", async (req, res, next) => {
 });
 
 router.post("/login", async (req, res, next) => {
-  console.log("hi")
+  
   const hashedPassword = await bcrypt.hash(req.body.password, 10);
-  console.log(hashedPassword)
+ 
   const email = req.body.email;
   const password = req.body.password;
 
   const role = req.body.userType;
   const latitude = req.body.latitude;
   const longitude = req.body.longitude;
-  console.log(password, email, role);
-  console.log('latlong', latitude, longitude)
+
 
   try {
     let existingUser;
@@ -296,7 +295,7 @@ router.post("/login", async (req, res, next) => {
 
 router.post("/reset-password", async (req, res) => {
   const { token, password, userType } = req.body;
-  console.log("POST Data:", token, password, userType);
+
 
   if (!token || !password || !userType) {
       return res.status(400).json({ success: false, message: "All fields are required" });

@@ -86,7 +86,7 @@ async function createTransporter() {
 route.get('/employeeatten', authenticate, async(req,res)=>{
   try {
     const data = await Employeeatten.find().sort({timestamp:-1})
-    console.log(data)
+
     res.status(200).json(data)
   }
   catch (error) {
@@ -113,7 +113,7 @@ route.post(
       const companyType = JSON.parse(req.body.companyType);
       const subInputValues = JSON.parse(req.body.subInputValues);
       const address = JSON.parse(req.body.address);
-      console.log(subInputValues);
+
       const companyData = {
         companyName,
         companyType: companyType,
@@ -213,9 +213,9 @@ route.post(
 route.get("/getKYCOfClient", authenticate, async (req, res) => {
   try {
     const email = req.query.selectedClient;
-    console.log(email);
+  
     const kycdata = await KYC.find({ userEmail: email });
-    console.log(kycdata);
+  
     res.status(200).json({ code: 200, kycdata });
   } catch (error) {
     console.error("Error", error);
@@ -442,10 +442,10 @@ cron.schedule("0 0 * * *", async () => {
 
       // Find user details using the objectId provided in the Payment model
       const userObject = await user.findById(invoice.user);
-      console.log(userObject);
+   
       if (userObject) {
         const userEmail = userObject.email;
-        console.log(userEmail);
+     
         sendReminderEmail(userEmail, "invoice");
       } else {
         console.error(`User not found for invoice: ${invoice._id}`);

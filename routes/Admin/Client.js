@@ -8,10 +8,6 @@ const { Readable } = require("stream");
 const AdminCompany = require("../../models/AdminCompany");
 const Company = require("../../models/Company");
 
-
-
-
-
 const upload = multer();
 
 const generateUniqueFilename = (commonFileId, originalFilename) => {

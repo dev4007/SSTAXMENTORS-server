@@ -23,7 +23,7 @@ router.post('/addpaymenthistory', async (req, res) => {
 
 router.post('/updatepaymentstatus', async (req, res) => {
     const { user, order_id, amount, status } = req.body;
-    console.log('user back', user, order_id, amount, status)
+ 
     // const { order_id,amount, status } = req.body;
     try {
         // Check if payment history entry exists
@@ -45,7 +45,7 @@ router.post('/updatepaymentstatus', async (req, res) => {
         // });
         const currentDate = new Date();
         const formattedDate = currentDate.toISOString().split('T')[0];
-        console.log("date",formattedDate)
+     
         const ph = new PH({ user, order_id, amount, status, DOP: formattedDate })
         await ph.save();
         res.status(201).json({
@@ -63,7 +63,7 @@ router.post('/updatepaymentstatus', async (req, res) => {
 router.post('/viewpaymenthistory',authenticate, async(req,res)=>{
     let temp;
     const user = req.user
-    console.log(user)
+  
     try {
         temp = await PH.find({user:user}).sort({DOP:-1})
         if(!temp){
@@ -81,14 +81,14 @@ router.post('/viewpaymenthistoryadmin', authenticate, async (req, res) => {
 
     try {
         const user = req.body.clientId
-        console.log(user)
+     
         const userob = await client.findOne({email:user})
-        console.log(userob)
+      
         if (!userob) {
             return res.status(404).json({ message: 'Client not found' });
         }
         const paymentHistory = await PH.find({user:userob}).sort({ DOP: -1 }); // Fetch all payment history, sorted by date of payment
-        console.log(paymentHistory)
+  
         if (!paymentHistory || paymentHistory.length === 0) {
             return res.status(404).json({ message: 'No payment history found' });
         }

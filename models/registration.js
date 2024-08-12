@@ -14,21 +14,12 @@ const registration=new mongoose.Schema({
     DOB:
     {
         type:Date,
-        default:null
+        required:true
     },
     address:
     {
         type:String,
-        default:null
-    },
-    streetname:{
-        type:String,
-        default:null
-    },
-    city:
-    {
-        type:String,
-        default:null
+        required:true
     },
     landmark:
     {
@@ -38,13 +29,10 @@ const registration=new mongoose.Schema({
     state:
     {
         type:String,
-        default:null
+        required:true
         
     },
-    // companyname:{
-    //     type:String,
-    //     default:null
-    // },
+
     country:
     {
         type:String,

@@ -80,7 +80,6 @@ route.post("/verify", async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, "your-secret-key");
-    console.log("🚀 ~ route.post ~ decoded:", decoded.email)
     const existingUser = await user.findOne({
       email: decoded.email,
       token: token,
@@ -93,12 +92,9 @@ route.post("/verify", async (req, res, next) => {
     }
 
     const emailSettings = await EmailSettings.findOne({
-      subject: "Verify Your Email!!!",
+      title: "Verify Your Email!!!",
     });
-    console.log("🚀 ~ route.post ~ emailSettings:", emailSettings)
-
     const subject = emailSettings.subject;
-    console.log("🚀 ~ route.post ~ subject:", subject)
     const text = emailSettings.text;
 
     const from = await AdminEmail.findOne({ status: true });
@@ -124,26 +120,17 @@ route.post("/verify", async (req, res, next) => {
       to: existingUser.email,
       subject: subject,
       html: `
-          <div style="background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-            <h2 style="font-size: 24px; font-weight: bold; color: #333333; text-align: center; margin-bottom: 16px;">Email Verified!</h2>
-            <p style="font-size: 16px; color: #666666; text-align: center;">${text}</p>
-          </div>
+        <div style="background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+      <h2 style="font-size: 24px; font-weight: bold; color: #333333;  margin-bottom: 16px;">Email Has been Verified!</h2>
+        </div>
         `,
     };
 
-    //
-
     await transporterInstance.sendMail(mailOptions);
-    //  const message = await client.messages.create({
-    //         body: 'Verification was successful',
-    //         from: 'whatsapp:+14155238886',
-    //         to: cl
-    //     });
-    // console.log(message.id)
     res.status(200).json({
       message: "Email verified successfully.",
-      token: TokenVerify,
-      userType: existingUser.role,
+      // token: TokenVerify,
+      // userType: existingUser.role,
     });
   } catch (error) {
     console.error(error);

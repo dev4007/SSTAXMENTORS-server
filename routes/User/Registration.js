@@ -28,7 +28,7 @@ const AdminCompany = require("../../models/AdminCompany");
 const GSTReturns = require("../../models/GSTReturns");
 const GSTNotice = require("../../models/GSTNotice");
 const History = require("../../models/History");
-const KYC = require("../../models/KYC")
+const KYC = require("../../models/KYC");
 const { v4: uuidv4 } = require("uuid");
 const Employeeatten = require("../../models/employeeatten");
 const Company = require("../../models/Company");
@@ -44,7 +44,7 @@ const { userInfo } = require("os");
 const AdminAddOnService = require("../../models/AdminAddOnService");
 const AddOnService = require("../../models/AddOnService");
 const cron = require("node-cron");
-const User=require("../../models/registration")
+const User = require("../../models/registration");
 
 const conn = mongoose.connection;
 
@@ -62,7 +62,7 @@ async function getEmailAddress() {
     return { email: adminEmail.email, password: adminEmail.password };
   } catch (error) {
     console.error("Error fetching email address:", error);
-    throw error; 
+    throw error;
   }
 }
 
@@ -79,120 +79,120 @@ async function createTransporter() {
     });
   } catch (error) {
     console.error("Error creating transporter:", error);
-    throw error; 
+    throw error;
   }
 }
-  
 
 route.post("/register", async (req, res, next) => {
-    const firstname = req.body.firstName;
-    const lastname = req.body.lastName;
-    const Phone_number = req.body.phone;
-    const DOB = req.body.dob;
-    const {
-      hno,
-      city,
-      landmark,
-      streetname,
-      state,
-      email,
-      country,
-      password,
-      confirmPassword,
-    } = req.body;
-  
-    try {
-      const existingUser = await user.findOne({ email });
-  
-      if (existingUser) {
-        return res.status(400).json({ message: "Email already exists" });
-      }
-  
-      if (password === confirmPassword) {
-        const hashedPassword = await bcrypt.hash(password, 10);
-  
-        const verificationToken = jwt.sign({ email }, "your-secret-key", {
-          expiresIn: "10m",
-        });
-  
-        const emailSettings = await EmailSettings.findOne({
-          title: "User Registration Verification",
-        });
-  
-        if (!emailSettings) {
-          return res.status(500).json({ message: "Email settings not found" });
-        }
-  
-        const subject = emailSettings.subject;
-        const text = emailSettings.text;
-        const from = await AdminEmail.findOne({ status: true });
-        console.log(from);
+  const firstname = req.body.firstName;
+  const lastname = req.body.lastName;
+  const Phone_number = req.body.phone;
+  const DOB = req.body.dob;
+  const {
+    address,
+    landmark,
+    state,
+    email,
+    country,
+    password,
+    confirmPassword,
+  } = req.body;
 
-  
-        if (!from) {
-          // Admin email doesn't exist
-          console.log("Admin email doesn't exist.");
-          return res.status(500).json({ message: "Email not found" });
-        }
-        const transporterInstance = await createTransporter();
+  try {
+    const existingUser = await user.findOne({ email });
 
-        const verificationLink = `${process.env.API_URL}/user/verify?token=${verificationToken}`;
-        const mailOptions = {
-          from: from.email,
-          to: email,
-          subject: subject,
-          text: `${text}\n\nVerification Link: ${verificationLink}`,
-        };
-  
-        await transporterInstance.sendMail(mailOptions);
-  
-        const newUser = new user({
-          firstname,
-          lastname,
-          DOB,
-          address: hno,
-          city,
-          landmark,
-          state,
-          streetname,
-          email,
-          Phone_number,
-          country,
-          password: hashedPassword,
-          confirmpassword: hashedPassword,
-          token: verificationToken,
-          status: "active",
-        });
-  
-        await newUser.save();
-  
-        setTimeout(async () => {
-          const userToDelete = await user.findOne({
-            email: newUser.email,
-            isverified: false,
-          });
-          if (userToDelete) {
-            await user.deleteOne({ email: newUser.email, isverified: false });
-            console.log(`User '${userToDelete.email}' removed due to timeout.`);
-          }
-        }, 10 * 60 * 1000)
-  
-        res.status(201).json({
-          message: "Registration successful. Check your email for verification.",
-        });
-      } else {
-        res
-          .status(400)
-          .json({ message: "Password and confirm password do not match" });
-      }
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Internal Server Error" });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already exists" });
     }
-  });
 
+    if (password === confirmPassword) {
+      const hashedPassword = await bcrypt.hash(password, 10);
 
+      const verificationToken = jwt.sign({ email }, "your-secret-key", {
+        expiresIn: "10m",
+      });
 
+      const emailSettings = await EmailSettings.findOne({
+        title: "Verify Your Email!!!",
+      });
 
+      if (!emailSettings) {
+        return res.status(500).json({ message: "Email settings not found" });
+      }
 
-  module.exports = route;
+      const subject = emailSettings.subject;
+      const text = emailSettings.text;
+      const from = await AdminEmail.findOne({ status: true });
+      if (!from) {
+        // Admin email doesn't exist
+        return res.status(500).json({ message: "Email not found" });
+      }
+      const transporterInstance = await createTransporter();
+
+      const verificationLink = `${process.env.API_URL}/user/verify?token=${verificationToken}`;
+      const mailOptions = {
+        from: from.email,
+        to: email,
+        subject: subject,
+        html: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.5;">
+                <p>Dear ${firstname} <p>
+                <p>Thank you for registering with SS Tax Mentors CRM & Document Management System!</p>
+                <p>To complete your account setup, please verify your email address by clicking the button below:</p>
+                <a href=${verificationLink} style="display: inline-block; padding: 10px 20px; margin: 20px 0; background-color: #007BFF; color: white; text-decoration: none; border-radius: 5px;">
+                    Verify My Email
+                </a>
+                <p>This verification step is essential to ensure the security of your account. Once you've verified your email, you'll be able to access your account and start using our services.</p>
+                <p>Thank you for choosing SS Tax Mentors. We look forward to assisting you!</p>
+                <p>Best regards,<br>The SS Tax Mentors Team</p>
+                <p>${from.email}</p>
+            </div>
+        `,
+      };
+
+      await transporterInstance.sendMail(mailOptions);
+
+      const newUser = new user({
+        firstname,
+        lastname,
+        DOB,
+        address,
+        landmark,
+        state,
+        email,
+        Phone_number,
+        country,
+        password: hashedPassword,
+        confirmpassword: hashedPassword,
+        token: verificationToken,
+        status: "active",
+      });
+
+      await newUser.save();
+
+      setTimeout(async () => {
+        const userToDelete = await user.findOne({
+          email: newUser.email,
+          isverified: false,
+        });
+        if (userToDelete) {
+          await user.deleteOne({ email: newUser.email, isverified: false });
+          console.log(`User '${userToDelete.email}' removed due to timeout.`);
+        }
+      }, 10 * 60 * 1000);
+
+      res.status(201).json({
+        message: "Registration successful. Check your email for verification.",
+      });
+    } else {
+      res
+        .status(400)
+        .json({ message: "Password and confirm password do not match" });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+module.exports = route;
