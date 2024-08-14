@@ -25,8 +25,112 @@ route.get("/CompanyDetails", authenticate, async (req, res) => {
     }
   });
 
+  route.post(
+    "/addcompany",
+    authenticate,
+    upload.fields([
+      { name: "companyTypeFiles", maxCount: 10 },
+      { name: "GST", maxCount: 1 },
+      { name: "PAN", maxCount: 1 },
+      { name: "VAN", maxCount: 1 },
+    ]),
+    async (req, res) => {
+      const session = await mongoose.startSession();
+      session.startTransaction();
+  
+      try {
+        // Extract file paths from req.files
+        const companyTypeFiles =
+          req.files["companyTypeFiles"]?.map((file) => ({
+            filename: file.originalname,
+            name: file.path,
+            type: file.mimetype,
+            size: file.size,
+          })) || [];
+  
+        const GSTFile = req.files["GST"]?.[0] || null;
+        const PANFile = req.files["PAN"]?.[0] || null;
+        const VANFile = req.files["VAN"]?.[0] || null;
+  
+        const GST = GSTFile
+          ? {
+              fileName: GSTFile.originalname,
+              filePath: GSTFile.path,
+              fileType: GSTFile.mimetype,
+              fileSize: GSTFile.size,
+            }
+          : null;
+  
+        const PAN = PANFile
+          ? {
+              fileName: PANFile.originalname,
+              filePath: PANFile.path,
+              fileType: PANFile.mimetype,
+              fileSize: PANFile.size,
+            }
+          : null;
+  
+        const VAN = VANFile
+          ? {
+              fileName: VANFile.originalname,
+              filePath: VANFile.path,
+              fileType: VANFile.mimetype,
+              fileSize: VANFile.size,
+            }
+          : null;
+  
+        const { companyName, email,officeNumber, address, state, country, landmark } =
+          req.body;
+        const companyType = JSON.parse(req.body.companyType);
+        const subInputValues = JSON.parse(req.body.subInputValues);
+        // Prepare company data
+        const companyData = {
+          companyName,
+          companyType,
+          address,
+          state,
+          country,
+          landmark,
+          officeNumber,
+          subInputValues: {
+            ...subInputValues,
+            GST: {
+              ...subInputValues.GST,
+              file_data: GST,
+            },
+            PAN: {
+              ...subInputValues.PAN,
+              file_data: PAN,
+            },
+            VAN: {
+              ...subInputValues.VAN,
+              file_data: VAN,
+            },
+          },
+          email,
+          companyTypeFiles,
+        };
+  
+        const company = new Company(companyData);
+  
+        // Save the company document
+        await company.save({ session });
+  
+        await session.commitTransaction();
+        session.endSession();
+  
+        res.status(200).json({ message: "Company added successfully" });
+      } catch (error) {
+        console.error("Error adding company:", error);
+        await session.abortTransaction();
+        session.endSession();
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    }
+  );
+ 
 
-  route.post("/addcompany",authenticate,upload.fields([{ name: "documentFiles", maxCount: 10 },{ name: "companyTypeFiles", maxCount: 10 }]),async (req, res, next) => {
+  route.post("/addcompany1",authenticate,upload.fields([{ name: "documentFiles", maxCount: 10 },{ name: "companyTypeFiles", maxCount: 10 }]),async (req, res, next) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -130,7 +234,6 @@ route.get("/CompanyDetails", authenticate, async (req, res) => {
     }
   }
 );
-
 
 
 route.get("/getClients", authenticate, async (req, res, next) => {

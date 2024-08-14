@@ -29,6 +29,17 @@ const companySchema = new mongoose.Schema({
     type: Object,
     required: true
   },
+  state: {
+    type: Object,
+    required: true
+  },
+  country: {
+    type: Object,
+    required: true
+  },
+  landmark: {
+    type: Object,
+  },
   officeNumber: String,
   
   subInputValues: {

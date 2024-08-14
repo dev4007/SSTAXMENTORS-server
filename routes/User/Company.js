@@ -58,9 +58,9 @@ route.get(
       const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
         bucketName: "companyFiles",
       });
-      console.log("🚀 ~ bucket:", bucket)
+      console.log("🚀 ~ bucket:", bucket);
       const downloadStream = bucket.openDownloadStreamByName(filename);
-  
+
       res.set("Content-Type", "application/pdf");
       downloadStream.pipe(res);
     } catch (error) {
@@ -113,8 +113,113 @@ route.get(
   }
 );
 
+// Post route to handle file uploads and company data
 route.post(
   "/addcompany",
+  authenticate,
+  upload.fields([
+    { name: "companyTypeFiles", maxCount: 10 },
+    { name: "GST", maxCount: 1 },
+    { name: "PAN", maxCount: 1 },
+    { name: "VAN", maxCount: 1 },
+  ]),
+  async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Extract file paths from req.files
+      const companyTypeFiles =
+        req.files["companyTypeFiles"]?.map((file) => ({
+          filename: file.originalname,
+          name: file.path,
+          type: file.mimetype,
+          size: file.size,
+        })) || [];
+
+      const GSTFile = req.files["GST"]?.[0] || null;
+      const PANFile = req.files["PAN"]?.[0] || null;
+      const VANFile = req.files["VAN"]?.[0] || null;
+
+      const GST = GSTFile
+        ? {
+            fileName: GSTFile.originalname,
+            filePath: GSTFile.path,
+            fileType: GSTFile.mimetype,
+            fileSize: GSTFile.size,
+          }
+        : null;
+
+      const PAN = PANFile
+        ? {
+            fileName: PANFile.originalname,
+            filePath: PANFile.path,
+            fileType: PANFile.mimetype,
+            fileSize: PANFile.size,
+          }
+        : null;
+
+      const VAN = VANFile
+        ? {
+            fileName: VANFile.originalname,
+            filePath: VANFile.path,
+            fileType: VANFile.mimetype,
+            fileSize: VANFile.size,
+          }
+        : null;
+
+      const { companyName, officeNumber, address, state, country, landmark } =
+        req.body;
+      const companyType = JSON.parse(req.body.companyType);
+      const subInputValues = JSON.parse(req.body.subInputValues);
+      // Prepare company data
+      const companyData = {
+        companyName,
+        companyType,
+        address,
+        state,
+        country,
+        landmark,
+        officeNumber,
+        subInputValues: {
+          ...subInputValues,
+          GST: {
+            ...subInputValues.GST,
+            file_data: GST,
+          },
+          PAN: {
+            ...subInputValues.PAN,
+            file_data: PAN,
+          },
+          VAN: {
+            ...subInputValues.VAN,
+            file_data: VAN,
+          },
+        },
+        email: req.user.email,
+        companyTypeFiles,
+      };
+
+      const company = new Company(companyData);
+
+      // Save the company document
+      await company.save({ session });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      res.status(200).json({ message: "Company added successfully" });
+    } catch (error) {
+      console.error("Error adding company:", error);
+      await session.abortTransaction();
+      session.endSession();
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  }
+);
+
+route.post(
+  "/addcompany1",
   authenticate,
   upload.fields([
     { name: "companyTypeFiles", maxCount: 10 }, // Handle companyTypeFiles
@@ -142,7 +247,7 @@ route.post(
       };
 
       const company = new Company(companyData);
-      console.log("🚀 ~ company:", company)
+      console.log("🚀 ~ company:", company);
 
       // Initialize filenames object
       const filenames = {};
@@ -190,8 +295,6 @@ route.post(
 
           for (const file of req.files[fieldname]) {
             const uniqueFilename = file.filename;
-      
-
 
             // Update company schema
             if (fieldname === "companyTypeFiles") {
@@ -203,7 +306,6 @@ route.post(
               });
             }
 
-       
             // Save file data in GridFS
             const bucket = new mongoose.mongo.GridFSBucket(
               mongoose.connection.db,
@@ -212,26 +314,23 @@ route.post(
               }
             );
 
-            
-
             const readableStream = new Readable();
             readableStream.push(file.buffer);
             readableStream.push(null);
             const uploadStream = bucket.openUploadStream(uniqueFilename, {
               _id: company._id,
             });
-         
+
             readableStream.pipe(uploadStream);
-        
+
             // Update filenames
-           filenames[fieldname].push(uniqueFilename);
-         
+            filenames[fieldname].push(uniqueFilename);
           }
         }
       }
 
       // Save company data with file metadata
-  await company.save({ session });
+      await company.save({ session });
 
       await session.commitTransaction();
       session.endSession();
@@ -245,6 +344,26 @@ route.post(
     }
   }
 );
+
+route.delete("/deletecompany/:id", authenticate, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Find the company by ID and delete it
+    const company = await Company.findByIdAndDelete(id);
+
+    // Check if the company was found and deleted
+    if (!company) {
+      return res.status(404).json({ error: "Company not found" });
+    }
+
+    // Respond with a success message
+    res.status(200).json({ message: "Company deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting company:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 
 route.get("/getCompanyDetails", authenticate, async (req, res) => {
   try {
@@ -335,7 +454,6 @@ route.get("/getCompanyNameOnlyDetails", authenticate, async (req, res) => {
 });
 
 route.get("/getCompanyRCODetails", authenticate, async (req, res) => {
-
   try {
     const userEmail = req.user.email;
     // const companyname = req.params.company
@@ -343,10 +461,9 @@ route.get("/getCompanyRCODetails", authenticate, async (req, res) => {
     const companies = await Company.find({ email: userEmail });
     const companyNames = companies.map((company) => ({
       companyName: company.companyName,
-      companyType: company.companyType // Adjust this if your structure is different
+      companyType: company.companyType, // Adjust this if your structure is different
     }));
-    console.log("🚀 ~ companyNames ~ companyNames:", companyNames)
-
+    console.log("🚀 ~ companyNames ~ companyNames:", companyNames);
 
     // If you have a specific response format, you can adjust it here
     res.status(200).json(companyNames);
