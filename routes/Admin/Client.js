@@ -32,7 +32,7 @@ route.get("/CompanyDetails", authenticate, async (req, res) => {
       { name: "companyTypeFiles", maxCount: 10 },
       { name: "GST", maxCount: 1 },
       { name: "PAN", maxCount: 1 },
-      { name: "VAN", maxCount: 1 },
+      { name: "TAN", maxCount: 1 },
     ]),
     async (req, res) => {
       const session = await mongoose.startSession();
@@ -50,7 +50,7 @@ route.get("/CompanyDetails", authenticate, async (req, res) => {
   
         const GSTFile = req.files["GST"]?.[0] || null;
         const PANFile = req.files["PAN"]?.[0] || null;
-        const VANFile = req.files["VAN"]?.[0] || null;
+        const TANFile = req.files["TAN"]?.[0] || null;
   
         const GST = GSTFile
           ? {
@@ -70,12 +70,12 @@ route.get("/CompanyDetails", authenticate, async (req, res) => {
             }
           : null;
   
-        const VAN = VANFile
+        const TAN = TANFile
           ? {
-              fileName: VANFile.originalname,
-              filePath: VANFile.path,
-              fileType: VANFile.mimetype,
-              fileSize: VANFile.size,
+              fileName: TANFile.originalname,
+              filePath: TANFile.path,
+              fileType: TANFile.mimetype,
+              fileSize: TANFile.size,
             }
           : null;
   
@@ -102,9 +102,9 @@ route.get("/CompanyDetails", authenticate, async (req, res) => {
               ...subInputValues.PAN,
               file_data: PAN,
             },
-            VAN: {
-              ...subInputValues.VAN,
-              file_data: VAN,
+            TAN: {
+              ...subInputValues.TAN,
+              file_data: TAN,
             },
           },
           email,

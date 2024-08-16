@@ -97,10 +97,29 @@ route.post(
           const mailOptions = {
             from: from.email,
             to: clients.map(client=>client.email),
-            subject: subject,
-            html: `<p>${text}</p><p>Details:</p><ul><li>Title: ${title}</li><li>Description: ${description}</li></ul>`,
+            subject: `Important Notification from SSTAX MENTORS`,
+            html: `
+            <p>Hello Dear,</p>
+        
+            <p>We hope this message finds you well.</p>
+        
+            <p>We would like to bring the following to your attention:</p>
+        
+            <ul>
+              <li><strong>Title:</strong> ${title}</li>
+              <li><strong>Description:</strong> ${description}</li>
+            </ul>
+        
+            <p>Please find the attached image for your reference.</p>
+        
+            <p>If you have any questions or need further clarification, feel free to contact us.</p>
+        
+            <p>Thank you for your attention to this matter.</p>
+        
+            <p>Best regards,</p>
+            <p>The SSTAX MENTORS Team</p>
+          `,
           };
-          console.log(mailOptions.to)
   
           await transporterInstance.sendMail(mailOptions);
           // Save the notification schema

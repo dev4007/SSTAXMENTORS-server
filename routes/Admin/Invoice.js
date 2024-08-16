@@ -222,8 +222,27 @@ route.post(
               from: from.email,
               to: email,
               subject: subject,
-              html: `<p>${text}</p><p>Details:</p><ul><li>Service: ${service}</li><li>Sub-service: ${subService}</li><li>Amount: ${amount}</li><li>Due Date: ${formattedDueDate}</li><li>Description: ${description}</li></ul>`,
-            };
+              html: `
+              <p>Hello, Please pay the bill before the due date</p>
+          
+              <p>Details:</p>
+              <ul>
+                <li><strong>Service:</strong> ${service}</li>
+                <li><strong>Sub-service:</strong> ${subService}</li>
+                <li><strong>Amount:</strong> ${amount}</li>
+                <li><strong>Due Date:</strong> ${formattedDueDate}</li>
+                <li><strong>Description:</strong> ${description}</li>
+              </ul>
+          
+              <p>This is a reminder to complete your payment for the above-mentioned service. Please make sure to pay by the due date to avoid any interruptions in service.</p>
+          
+              <p>If you have any questions or need assistance with the payment process, please do not hesitate to contact us.</p>
+          
+              <p>Thank you for your prompt attention to this matter.</p>
+          
+              <p>Best regards,</p>
+              <p>The SSTAX MENTORS Team</p>
+            `,      };
 
             await transporterInstance.sendMail(mailOptions);
 
