@@ -17,8 +17,8 @@ const storage = multer.diskStorage({
       case "PAN":
         uploadPath = path.join("uploads", "PAN");
         break;
-      case "VAN":
-        uploadPath = path.join("uploads", "VAN");
+      case "TAN":
+        uploadPath = path.join("uploads", "TAN");
         break;
       default:
         uploadPath = path.join("uploads");
