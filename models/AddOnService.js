@@ -16,7 +16,7 @@ const AddOnServiceSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    default: 'closed', // Set default status as 'closed'
+    default: 'open', // Set default status as 'closed'
     enum: ['open', 'closed', 'resolved'], // Allow only 'open', 'closed', or 'resolved' values
   },
   timestamp: {
