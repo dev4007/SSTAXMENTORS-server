@@ -8,7 +8,10 @@ const { Readable } = require("stream");
 const AdminCompany = require("../../models/AdminCompany");
 const Company = require("../../models/Company");
 
-const upload = multer();
+// const upload = multer();
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 const generateUniqueFilename = (commonFileId, originalFilename) => {
     return `${commonFileId}_${originalFilename}`;
@@ -25,109 +28,109 @@ route.get("/CompanyDetails", authenticate, async (req, res) => {
     }
   });
 
-  route.post(
-    "/addcompany",
-    authenticate,
-    upload.fields([
-      { name: "companyTypeFiles", maxCount: 10 },
-      { name: "GST", maxCount: 1 },
-      { name: "PAN", maxCount: 1 },
-      { name: "TAN", maxCount: 1 },
-    ]),
-    async (req, res) => {
-      const session = await mongoose.startSession();
-      session.startTransaction();
+  // route.post(
+  //   "/addcompany",
+  //   authenticate,
+  //   upload.fields([
+  //     { name: "companyTypeFiles", maxCount: 10 },
+  //     { name: "GST", maxCount: 1 },
+  //     { name: "PAN", maxCount: 1 },
+  //     { name: "TAN", maxCount: 1 },
+  //   ]),
+  //   async (req, res) => {
+  //     const session = await mongoose.startSession();
+  //     session.startTransaction();
   
-      try {
-        // Extract file paths from req.files
-        const companyTypeFiles =
-          req.files["companyTypeFiles"]?.map((file) => ({
-            filename: file.originalname,
-            name: file.path,
-            type: file.mimetype,
-            size: file.size,
-          })) || [];
+  //     try {
+  //       // Extract file paths from req.files
+  //       const companyTypeFiles =
+  //         req.files["companyTypeFiles"]?.map((file) => ({
+  //           filename: file.originalname,
+  //           name: file.path,
+  //           type: file.mimetype,
+  //           size: file.size,
+  //         })) || [];
   
-        const GSTFile = req.files["GST"]?.[0] || null;
-        const PANFile = req.files["PAN"]?.[0] || null;
-        const TANFile = req.files["TAN"]?.[0] || null;
+  //       const GSTFile = req.files["GST"]?.[0] || null;
+  //       const PANFile = req.files["PAN"]?.[0] || null;
+  //       const TANFile = req.files["TAN"]?.[0] || null;
   
-        const GST = GSTFile
-          ? {
-              fileName: GSTFile.originalname,
-              filePath: GSTFile.path,
-              fileType: GSTFile.mimetype,
-              fileSize: GSTFile.size,
-            }
-          : null;
+  //       const GST = GSTFile
+  //         ? {
+  //             fileName: GSTFile.originalname,
+  //             filePath: GSTFile.path,
+  //             fileType: GSTFile.mimetype,
+  //             fileSize: GSTFile.size,
+  //           }
+  //         : null;
   
-        const PAN = PANFile
-          ? {
-              fileName: PANFile.originalname,
-              filePath: PANFile.path,
-              fileType: PANFile.mimetype,
-              fileSize: PANFile.size,
-            }
-          : null;
+  //       const PAN = PANFile
+  //         ? {
+  //             fileName: PANFile.originalname,
+  //             filePath: PANFile.path,
+  //             fileType: PANFile.mimetype,
+  //             fileSize: PANFile.size,
+  //           }
+  //         : null;
   
-        const TAN = TANFile
-          ? {
-              fileName: TANFile.originalname,
-              filePath: TANFile.path,
-              fileType: TANFile.mimetype,
-              fileSize: TANFile.size,
-            }
-          : null;
+  //       const TAN = TANFile
+  //         ? {
+  //             fileName: TANFile.originalname,
+  //             filePath: TANFile.path,
+  //             fileType: TANFile.mimetype,
+  //             fileSize: TANFile.size,
+  //           }
+  //         : null;
   
-        const { companyName, email,officeNumber, address, state, country, landmark } =
-          req.body;
-        const companyType = JSON.parse(req.body.companyType);
-        const subInputValues = JSON.parse(req.body.subInputValues);
-        // Prepare company data
-        const companyData = {
-          companyName,
-          companyType,
-          address,
-          state,
-          country,
-          landmark,
-          officeNumber,
-          subInputValues: {
-            ...subInputValues,
-            GST: {
-              ...subInputValues.GST,
-              file_data: GST,
-            },
-            PAN: {
-              ...subInputValues.PAN,
-              file_data: PAN,
-            },
-            TAN: {
-              ...subInputValues.TAN,
-              file_data: TAN,
-            },
-          },
-          email,
-          companyTypeFiles,
-        };
+  //       const { companyName, email,officeNumber, address, state, country, landmark } =
+  //         req.body;
+  //       const companyType = JSON.parse(req.body.companyType);
+  //       const subInputValues = JSON.parse(req.body.subInputValues);
+  //       // Prepare company data
+  //       const companyData = {
+  //         companyName,
+  //         companyType,
+  //         address,
+  //         state,
+  //         country,
+  //         landmark,
+  //         officeNumber,
+  //         subInputValues: {
+  //           ...subInputValues,
+  //           GST: {
+  //             ...subInputValues.GST,
+  //             file_data: GST,
+  //           },
+  //           PAN: {
+  //             ...subInputValues.PAN,
+  //             file_data: PAN,
+  //           },
+  //           TAN: {
+  //             ...subInputValues.TAN,
+  //             file_data: TAN,
+  //           },
+  //         },
+  //         email,
+  //         companyTypeFiles,
+  //       };
   
-        const company = new Company(companyData);
+  //       const company = new Company(companyData);
   
-        // Save the company document
-        await company.save({ session });
+  //       // Save the company document
+  //       await company.save({ session });
   
-        await session.commitTransaction();
-        session.endSession();
+  //       await session.commitTransaction();
+  //       session.endSession();
   
-        res.status(200).json({ message: "Company added successfully" });
-      } catch (error) {
-        console.error("Error adding company:", error);
-        await session.abortTransaction();
-        session.endSession();
-        res.status(500).json({ error: "Internal Server Error" });
-      }
-    }
-  );
+  //       res.status(200).json({ message: "Company added successfully" });
+  //     } catch (error) {
+  //       console.error("Error adding company:", error);
+  //       await session.abortTransaction();
+  //       session.endSession();
+  //       res.status(500).json({ error: "Internal Server Error" });
+  //     }
+  //   }
+  // );
  
 
   route.post("/addcompany1",authenticate,upload.fields([{ name: "documentFiles", maxCount: 10 },{ name: "companyTypeFiles", maxCount: 10 }]),async (req, res, next) => {
@@ -401,6 +404,128 @@ route.get("/getClients", authenticate, async (req, res, next) => {
       res.status(500).json({ error: "Internal Server Error" });
     }
   });
+
+
+  route.post(
+    "/add-company",
+    authenticate,
+    upload.fields([
+      { name: "companyTypeFiles", maxCount: 10 },
+      { name: "gstFile", maxCount: 5 }, // Adjust maxCount as needed
+      { name: "panFile", maxCount: 5 }, // Adjust maxCount as needed
+      { name: "tanFile", maxCount: 5 }, // Adjust maxCount as needed
+    ]),
+    async (req, res, next) => {
+      const session = await mongoose.startSession();
+      session.startTransaction();
+  
+      try {
+        const {
+          companyName,
+          officeNumber,
+          address,
+          state,
+          country,
+          gstNumber,
+          panNumber,
+          tanNumber,
+        } = req.body;
+        const companyType = JSON.parse(req.body.companyType);
+  
+        const companyData = {
+          companyName,
+          companyType: companyType,
+          address,
+          state,
+          country,
+          officeNumber,
+          email: req.user.email,
+          gstNumber,
+          panNumber,
+          tanNumber,
+        };
+  
+        const company = new Company(companyData);
+  
+        // Save the company schema
+        await company.save({ session });
+  
+        // Function to handle file uploads and metadata saving
+        const handleFileUploads = async (fieldName, fileArray) => {
+          for (const file of fileArray) {
+            const uniqueFilename = generateUniqueFilename(
+              company._id,
+              file.originalname
+            );
+  
+            // Save metadata in the company schema
+            company[fieldName].push({
+              name: file.originalname,
+              type: file.mimetype,
+              size: file.size,
+              filename: uniqueFilename,
+            });
+  
+            // Save file data in the "company" bucket in GridFS
+            const bucket = new mongoose.mongo.GridFSBucket(
+              mongoose.connection.db,
+              {
+                bucketName: "company",
+              }
+            );
+  
+            const readableStream = new Readable();
+            readableStream.push(file.buffer);
+            readableStream.push(null);
+            const uploadStream = bucket.openUploadStream(uniqueFilename, {
+              _id: company._id,
+            });
+  
+            readableStream.pipe(uploadStream);
+          }
+        };
+  
+  
+        // Save metadata and data for company type files
+        if (req.files["companyTypeFiles"]) {
+          await handleFileUploads(
+            "companyTypeFiles",
+            req.files["companyTypeFiles"]
+          );
+        }
+  
+        // Save metadata and data for GST files
+        if (req.files["gstFile"]) {
+          await handleFileUploads("gstFile", req.files["gstFile"]);
+        }
+  
+        // Save metadata and data for PAN files
+        if (req.files["panFile"]) {
+          await handleFileUploads("panFile", req.files["panFile"]);
+        }
+  
+        // Save metadata and data for TAN files
+        if (req.files["tanFile"]) {
+          await handleFileUploads("tanFile", req.files["tanFile"]);
+        }
+  
+        console.log("Company data and files stored in the database:");
+  
+        await company.save({ session });
+  
+        await session.commitTransaction();
+        session.endSession();
+  
+        res.status(200).json({ message: "Company added successfully" });
+      } catch (error) {
+        console.error("Error adding company:", error);
+        await session.abortTransaction();
+        session.endSession();
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    }
+  );
+  
   
 
 

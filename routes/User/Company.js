@@ -41,9 +41,12 @@ const payment = require("../../models/payment");
 const Grid = require("gridfs-stream");
 const History = require("../../models/History");
 const conn = mongoose.connection;
-const upload = require("./../../middlewares/uploadMiddleware"); // Import the upload middleware
+// const upload = require("./../../middlewares/uploadMiddleware"); // Import the upload middleware
 
 const Reminder = require("../../models/Reminder");
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 const generateUniqueFilename = (commonFileId, originalFilename) => {
   return `${commonFileId}_${originalFilename}`;
@@ -485,7 +488,7 @@ route.get("/getCompany", authenticate, async (req, res) => {
     const companyNames = companies.map((company) => ({
       companyID: company._id,
       companyName: company.companyName,
-      companyType: company.subInputValues, // Adjust this if your structure is different
+      companyType: company.gstFile, // Adjust this if your structure is different
     }));
 
     // If you have a specific response format, you can adjust it here
@@ -515,14 +518,12 @@ route.delete("/deleteFile/:id", authenticate, async (req, res) => {
 
     // Check if GST and file_data exist
     if (
-      company.subInputValues &&
-      company.subInputValues.GST &&
-      company.subInputValues.GST.file_data
+      company.gstFile
     ) {
       // Remove the file data
       const updatedCompany = await Company.findByIdAndUpdate(
         id,
-        { $unset: { "subInputValues.GST.file_data": "" } }, // Use $unset to remove file_data
+        { $unset: { "gstFile": "" } }, // Use $unset to remove file_data
         { new: true }
       );
 
@@ -542,51 +543,224 @@ route.delete("/deleteFile/:id", authenticate, async (req, res) => {
 
 route.post(
   "/updateGST/:companyId",
-  authenticate,
-  upload.single("GST"), // Handling single file upload
-  async (req, res) => {
+  authenticate, // Ensure this middleware is defined
+  upload.fields([{ name: "gstFile", maxCount: 5 }]),
+  async (req, res, next) => {
     const { companyId } = req.params;
 
-    // Validate and check if file is provided
-    if (!req.file) {
-      return res.status(400).json({ error: "GST file is required" });
-    }
-
-    const GSTFile = req.file;
-
-    // File metadata
-    const GST = {
-      fileName: GSTFile.originalname,
-      filePath: GSTFile.path,
-      fileType: GSTFile.mimetype,
-      fileSize: GSTFile.size,
-    };
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
     try {
-      // Remove existing GST file data
-      await Company.findByIdAndUpdate(companyId, {
-        $unset: { "subInputValues.GST.file_data": "" },
-      });
-
-      // Update with new GST file data
-      const updatedCompany = await Company.findByIdAndUpdate(
-        companyId,
-        { $set: { "subInputValues.GST.file_data": GST } }, // Use $set to add new file_data
-        { new: true }
-      );
-
-      if (!updatedCompany) {
-        return res.status(404).json({ error: "Company not found" });
+      // Fetch the company by ID
+      const company = await Company.findById(companyId).session(session);
+      if (!company) {
+        throw new Error('Company not found');
       }
 
-      res
-        .status(200)
-        .json({
-          message: "GST file updated successfully",
-          data: updatedCompany.subInputValues.GST.file_data,
-        });
+      // Function to handle file uploads
+      const handleFileUploads = async (fieldName, fileArray) => {
+        const fileMetadata = [];
+        for (const file of fileArray) {
+          const uniqueFilename = generateUniqueFilename(
+            company._id,
+            file.originalname
+          );
+
+           // Save metadata in the company schema
+          company[fieldName] = company[fieldName] || []; // Initialize if undefined
+          const metadata = {
+            name: file.originalname,
+            type: file.mimetype,
+            size: file.size,
+            filename: uniqueFilename,
+          };
+          company[fieldName].push(metadata);
+          fileMetadata.push(metadata);
+          // Save file data in the "company" bucket in GridFS
+          const bucket = new mongoose.mongo.GridFSBucket(
+            mongoose.connection.db,
+            {
+              bucketName: "company",
+            }
+          );
+
+          const readableStream = new Readable();
+          readableStream.push(file.buffer);
+          readableStream.push(null);
+          const uploadStream = bucket.openUploadStream(uniqueFilename, {
+            _id: company._id,
+          });
+
+          readableStream.pipe(uploadStream);
+        }
+        return fileMetadata;
+      };
+
+      // Save metadata and data for GST files if provided
+      let gstFileMetadata = [];
+   
+      if (req.files["gstFile"]) {
+        gstFileMetadata = await handleFileUploads("gstFile", req.files["gstFile"]);
+      }
+
+      // Save the updated company document
+      await company.save({ session });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      res.status(200).json({
+        message: "GST files updated successfully",
+        gstFiles: gstFileMetadata
+      });
     } catch (error) {
-      console.error("Error updating GST file:", error);
+      console.error("Error updating GST files:", error);
+      await session.abortTransaction();
+      session.endSession();
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  }
+);
+
+route.post(
+  "/add-company",
+  authenticate,
+  upload.fields([
+    { name: "companyTypeFiles", maxCount: 10 },
+    { name: "gstFile", maxCount: 5 }, // Adjust maxCount as needed
+    { name: "panFile", maxCount: 5 }, // Adjust maxCount as needed
+    { name: "tanFile", maxCount: 5 }, // Adjust maxCount as needed
+  ]),
+  async (req, res, next) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const {
+        companyName,
+        officeNumber,
+        address,
+        state,
+        country,
+        gstNumber,
+        panNumber,
+        tanNumber,
+      } = req.body;
+      const companyType = JSON.parse(req.body.companyType);
+
+      const companyData = {
+        companyName,
+        companyType: companyType,
+        address,
+        state,
+        country,
+        officeNumber,
+        email: req.user.email,
+        gstNumber,
+        panNumber,
+        tanNumber,
+      };
+
+      const company = new Company(companyData);
+
+      // Save the company schema
+      await company.save({ session });
+
+      // Function to handle file uploads and metadata saving
+      const handleFileUploads = async (fieldName, fileArray) => {
+        for (const file of fileArray) {
+          const uniqueFilename = generateUniqueFilename(
+            company._id,
+            file.originalname
+          );
+
+          // Save metadata in the company schema
+          company[fieldName].push({
+            name: file.originalname,
+            type: file.mimetype,
+            size: file.size,
+            filename: uniqueFilename,
+          });
+
+          // Save file data in the "company" bucket in GridFS
+          const bucket = new mongoose.mongo.GridFSBucket(
+            mongoose.connection.db,
+            {
+              bucketName: "company",
+            }
+          );
+
+          const readableStream = new Readable();
+          readableStream.push(file.buffer);
+          readableStream.push(null);
+          const uploadStream = bucket.openUploadStream(uniqueFilename, {
+            _id: company._id,
+          });
+
+          readableStream.pipe(uploadStream);
+        }
+      };
+
+
+      // Save metadata and data for company type files
+      if (req.files["companyTypeFiles"]) {
+        await handleFileUploads(
+          "companyTypeFiles",
+          req.files["companyTypeFiles"]
+        );
+      }
+
+      // Save metadata and data for GST files
+      if (req.files["gstFile"]) {
+        await handleFileUploads("gstFile", req.files["gstFile"]);
+      }
+
+      // Save metadata and data for PAN files
+      if (req.files["panFile"]) {
+        await handleFileUploads("panFile", req.files["panFile"]);
+      }
+
+      // Save metadata and data for TAN files
+      if (req.files["tanFile"]) {
+        await handleFileUploads("tanFile", req.files["tanFile"]);
+      }
+
+      console.log("Company data and files stored in the database:");
+
+      await company.save({ session });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      res.status(200).json({ message: "Company added successfully" });
+    } catch (error) {
+      console.error("Error adding company:", error);
+      await session.abortTransaction();
+      session.endSession();
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  }
+);
+
+route.get(
+  "/previewCompany/:filename",
+  authenticate,
+  async (req, res, next) => {
+    try {
+      const { filename } = req.params;
+      const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+        bucketName: "company",
+      });
+      const downloadStream = bucket.openDownloadStreamByName(filename);
+
+      res.set("Content-Type", "application/pdf");
+      downloadStream.pipe(res);
+    } catch (error) {
+      console.error("Error previewing company file:", error);
+      if (error.name === "FileNotFound") {
+        return res.status(404).json({ error: "Company file not found" });
+      }
       res.status(500).json({ error: "Internal Server Error" });
     }
   }

@@ -85,7 +85,7 @@ app.use(express.json({ limit: "50mb" }));
 app.use(cors());
 
 // Serve static files from the 'uploads' directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 
 // Admin

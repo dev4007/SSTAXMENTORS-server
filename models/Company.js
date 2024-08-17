@@ -4,7 +4,7 @@ const fileSchema = new mongoose.Schema({
   filename: String,
   type: String,
   size: Number,
-  name:String
+  name: String
   // Add more metadata fields as needed
 });
 
@@ -24,35 +24,47 @@ const companySchema = new mongoose.Schema({
     }
   },
   companyTypeFiles: [fileSchema], // Storing file metadata
-  // documentFiles: [fileSchema], // Storing file metadata
   address: {
-    type: Object,
+    type: String,
     required: true
   },
   state: {
-    type: Object,
+    type: String,
     required: true
   },
   country: {
-    type: Object,
+    type: String,
     required: true
   },
   landmark: {
-    type: Object,
+    type: String,
   },
   officeNumber: String,
   
-  subInputValues: {
-    type: Object,
-    required: true,
-  },
   email: {
     type: String,
     required: true,
   },
 
+  gstNumber: {
+    type: String,
+    required: true
+  },
+  gstFile: [fileSchema], // Storing multiple GST file metadata
+
+  panNumber: {
+    type: String,
+    required: true
+  },
+  panFile: [fileSchema], // Storing multiple PAN file metadata
+
+  tanNumber: {
+    type: String,
+    required: true
+  },
+  tanFile: [fileSchema] // Storing multiple TAN file metadata
 });
 
-const Companiesr = mongoose.model('Companiesr', companySchema);
+const Company = mongoose.model('companiesr', companySchema);
 
-module.exports = Companiesr;
+module.exports = Company;
