@@ -120,7 +120,7 @@ router.post("/forgot-password", async (req, res, next) => {
       from: from.email,
       to: existingUser.email,
       html: `
-      <p>Hello ${existingUser.name},</p>
+      <p>Hello,</p>
       <p>We received a request to reset your password. Please click the button below to reset your password:</p>
       <p>
         <a href="${relink}" style="
