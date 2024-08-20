@@ -113,18 +113,31 @@ router.post("/forgot-password", async (req, res, next) => {
 
     const transporterInstance = await createTransporter();
     const from = await AdminEmail.findOne({ status: true });
-    const emailSettings = await EmailSettings.findOne({
-      title: "Reset Password",
-    });
+
     const relink=`${process.env.API_URL}/login/reset-password?token=${token}`
     // console.log(from.email)
     var mailOptions = {
       from: from.email,
       to: existingUser.email,
-      subject: emailSettings.subject,
-      // text: ${emailSettings.text}:http://localhost:5002/reset-password/${existingUser._id}/${token},
-      text: `${emailSettings.text}\n\nreset password link: ${relink}`
-    };
+      html: `
+      <p>Hello ${existingUser.name},</p>
+      <p>We received a request to reset your password. Please click the button below to reset your password:</p>
+      <p>
+        <a href="${relink}" style="
+          display: inline-block;
+          padding: 10px 20px;
+          font-size: 16px;
+          color: white;
+          background-color: #007BFF;
+          text-decoration: none;
+          border-radius: 5px;
+        ">Reset Password</a>
+      </p>
+      <p>If you did not request this, please ignore this email. Your password will remain unchanged.</p>
+      <p>Best regards,<br>SSTAX Mentors</p>
+    `
+  };
+   
 
     transporterInstance.sendMail(mailOptions, function (error, info) {
       if (error) {
