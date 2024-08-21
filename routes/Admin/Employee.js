@@ -171,6 +171,7 @@ route.get("/getEmployeeId", authenticate, async (req, res) => {
   route.get('/employeeatten', authenticate, async(req,res)=>{
     try {
       const data = await Employeeatten.find().sort({timestamp:-1})
+      console.log("🚀 ~ route.get ~ data:", data)
       console.log(data)
       res.status(200).json(data)
     }

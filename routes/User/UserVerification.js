@@ -91,11 +91,6 @@ route.post("/verify", async (req, res, next) => {
         .json({ message: "User not found or invalid token" });
     }
 
-    const emailSettings = await EmailSettings.findOne({
-      title: "Verify Your Email!!!",
-    });
-    const subject = emailSettings.subject;
-    const text = emailSettings.text;
 
     const from = await AdminEmail.findOne({ status: true });
     const transporterInstance = await createTransporter();
@@ -118,7 +113,7 @@ route.post("/verify", async (req, res, next) => {
     const mailOptions = {
       from: from.email,
       to: existingUser.email,
-      subject: subject,
+      subject: "Verify Your Email",
       html: `
         <div style="background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
       <h2 style="font-size: 24px; font-weight: bold; color: #333333;  margin-bottom: 16px;">Email Has been Verified!</h2>

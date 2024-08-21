@@ -207,44 +207,41 @@ route.post(
             }
 
             // Save the updated payment object with file details
-            const emailSettings = await EmailSettings.findOne({
-              title: "Payment Reminder",
-            });
+       
             await bill.save();
             const formattedDueDate = format(new Date(due), "dd/MM/yyyy");
             const transporterInstance = await createTransporter();
 
-            const subject = emailSettings.subject;
-            const text = emailSettings.text;
+          
             const from = await AdminEmail.findOne({ status: true });
             // Sending email notification
-            const mailOptions = {
-              from: from.email,
-              to: email,
-              subject: subject,
-              html: `
-              <p>Hello, Please pay the bill before the due date</p>
+            // const mailOptions = {
+            //   from: from.email,
+            //   to: email,
+            //   subject: subject,
+            //   html: `
+            //   <p>Hello, Please pay the bill before the due date</p>
           
-              <p>Details:</p>
-              <ul>
-                <li><strong>Service:</strong> ${service}</li>
-                <li><strong>Sub-service:</strong> ${subService}</li>
-                <li><strong>Amount:</strong> ${amount}</li>
-                <li><strong>Due Date:</strong> ${formattedDueDate}</li>
-                <li><strong>Description:</strong> ${description}</li>
-              </ul>
+            //   <p>Details:</p>
+            //   <ul>
+            //     <li><strong>Service:</strong> ${service}</li>
+            //     <li><strong>Sub-service:</strong> ${subService}</li>
+            //     <li><strong>Amount:</strong> ${amount}</li>
+            //     <li><strong>Due Date:</strong> ${formattedDueDate}</li>
+            //     <li><strong>Description:</strong> ${description}</li>
+            //   </ul>
           
-              <p>This is a reminder to complete your payment for the above-mentioned service. Please make sure to pay by the due date to avoid any interruptions in service.</p>
+            //   <p>This is a reminder to complete your payment for the above-mentioned service. Please make sure to pay by the due date to avoid any interruptions in service.</p>
           
-              <p>If you have any questions or need assistance with the payment process, please do not hesitate to contact us.</p>
+            //   <p>If you have any questions or need assistance with the payment process, please do not hesitate to contact us.</p>
           
-              <p>Thank you for your prompt attention to this matter.</p>
+            //   <p>Thank you for your prompt attention to this matter.</p>
           
-              <p>Best regards,</p>
-              <p>The SSTAX MENTORS Team</p>
-            `,      };
+            //   <p>Best regards,</p>
+            //   <p>The SSTAX MENTORS Team</p>
+            // `,      };
 
-            await transporterInstance.sendMail(mailOptions);
+            // await transporterInstance.sendMail(mailOptions);
 
             res.status(200).json({ bill });
           } else {

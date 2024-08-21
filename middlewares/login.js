@@ -200,9 +200,9 @@ router.post("/login", async (req, res, next) => {
         .json({ success: false, message: "Invalid email or password" });
     }
 
-    let expiresIn = "30d"; // Default expiration for non-admin users
+    let expiresIn = "15d"; // Default expiration for non-admin users
     if (role === "admin" || role === "employee") {
-      expiresIn = "30d"; // Set expiresIn to a value that indicates it never expires
+      expiresIn = "15d"; // Set expiresIn to a value that indicates it never expires
     }
 
     // Generate a JWT token

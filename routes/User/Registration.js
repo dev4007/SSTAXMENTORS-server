@@ -112,16 +112,7 @@ route.post("/register", async (req, res, next) => {
         expiresIn: "10m",
       });
 
-      const emailSettings = await EmailSettings.findOne({
-        title: "Verify Your Email!!!",
-      });
-
-      if (!emailSettings) {
-        return res.status(500).json({ message: "Email settings not found" });
-      }
-
-      const subject = emailSettings.subject;
-      const text = emailSettings.text;
+   
       const from = await AdminEmail.findOne({ status: true });
       if (!from) {
         // Admin email doesn't exist
@@ -133,7 +124,7 @@ route.post("/register", async (req, res, next) => {
       const mailOptions = {
         from: from.email,
         to: email,
-        subject: subject,
+        subject: "Verify Your Email",
         html: `
             <div style="font-family: Arial, sans-serif; line-height: 1.5;">
                 <p>Dear ${firstname} <p>

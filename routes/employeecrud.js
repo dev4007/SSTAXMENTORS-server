@@ -33,6 +33,7 @@ const AdminGSTNoticeField = require('../models/AdminGSTNotice')
 const AdminITField = require('../models/AdminITReturns')
 const AdminEmail = require("../models/AdminEmail");
 const sessionLog=require('../models/sessionLog');
+const Payment = require("../models/payment");
 router.post('/deleteuser/:email',authenticate,async (req, res) => {
     let role=req.user.role
     if(role==='employee'){
@@ -872,25 +873,85 @@ router.get('/getGSTReturns', authenticate, async (req, res) => {
           })),
         });
   
-        const emailSettings = await EmailSettings.findOne({
-          title: "Reminder",
-        });
         const transporterInstance = await createTransporter();
-        console.log(emailSettings)
 
-        const subject = emailSettings.subject;
-        const text = emailSettings.text;
+        // const subject = emailSettings.subject;
+        // const text = emailSettings.text;
         const from = await AdminEmail.findOne({ status: true });
         // Sending email notification
-        const mailOptions = {
-          from: from.email,
-          to: Array.isArray(selectedClients) ? selectedClients.join(',') : selectedClients,
-          subject: subject,
-          html: `<p>${text}</p><p>Details:</p><ul><li>Title: ${title}</li><li>Description: ${description}</li></ul>`,
-        };
 
-        console.log(mailOptions)
-        await transporterInstance.sendMail(mailOptions);
+        const users = await user.find({
+          email: { $in: parsedSelectedClients },
+        });
+
+        // Function to create mail options for each user
+        function createMailOptions(user, payments) {
+          const paymentDetails = payments
+            .map(
+              (payment) => `
+              <p>This is a friendly reminder that payment for the invoice <strong>${
+                payment.invoiceId
+              }</strong>, totaling <strong>${
+                payment.amount
+              }</strong>, is still pending. The invoice was issued on <strong>${
+                payment.timestamp ? payment.timestamp.toDateString() : "N/A"
+              }</strong>, and we kindly request that the payment be made by <strong>${
+                payment.duedate ? payment.duedate.toDateString() : "N/A"
+              }</strong>.</p>
+            `
+            )
+            .join("<br>");
+
+          return {
+            from: from.email,
+            to: user.email,
+            subject: "Payment Reminder - Invoice from SS Tax Mentors",
+            html: `
+              <p>Dear ${user.firstname},</p>
+              <p>I hope this message finds you well.</p>
+              ${paymentDetails}
+              <p>You can make the payment using any of the following methods:</p>
+              <ul>
+                <li>Google Pay</li>
+                <li>PhonePe</li>
+                <li>Paytm</li>
+                <li>Bank Transfer</li>
+              </ul>
+              <p>We greatly value your business and would appreciate your prompt attention to this matter. If you have already made the payment, please disregard this reminder and kindly inform us of the payment details for our records.</p>
+              <p>If you have any questions or need assistance, feel free to reach out. We’re happy to help.</p>
+              <p>Best regards,</p>
+              <p>Team SS Tax Mentors</p>
+            `,
+          };
+        }
+
+        // Example usage
+
+        // Send an email for each user
+        for (const user of users) {
+          try {
+            // Fetch payments for the current user
+            const payments = await Payment.find({
+              user: user._id,
+              ispaid: false,
+            }).exec();
+
+            if (payments.length === 0) {
+              console.log(`No payments found for user ${user._id}`);
+              continue;
+            }
+
+            // Create mail options for the current user
+            const mailOptions = createMailOptions(user, payments);
+
+            // Send email
+            await transporterInstance.sendMail(mailOptions);
+            console.log(`Email sent to ${user.email}`);
+          } catch (error) {
+            console.error(`Error processing user ${user._id}:`, error);
+          }
+        }
+        // await transporterInstance.sendMail(mailOptions);
 
 
         // Save the reminder schema

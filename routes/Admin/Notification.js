@@ -116,7 +116,7 @@ route.post(
           `,
           };
   
-          await transporterInstance.sendMail(mailOptions);
+          // await transporterInstance.sendMail(mailOptions);
           // Save the notification schema
           await notificationschema.save({ session });
   

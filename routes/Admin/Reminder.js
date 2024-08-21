@@ -141,7 +141,10 @@ route.post(
         for (const user of users) {
           try {
             // Fetch payments for the current user
-            const payments = await Payment.find({ user: user._id }).exec();
+            const payments = await Payment.find({
+              user: user._id,
+              ispaid: false,
+            }).exec();
 
             if (payments.length === 0) {
               console.log(`No payments found for user ${user._id}`);
