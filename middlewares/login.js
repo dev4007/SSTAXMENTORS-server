@@ -4,7 +4,7 @@ const registration = require("../models/registration");
 const employee = require("../models/employee");
 //const authenticate=require('../middlewares/authenticate')
 // const checkrole=require('../middlewares/checkuser')
-const employeeatten=require("../models/employeeatten")
+const employeeatten = require("../models/employeeatten");
 const adminmodel = require("../models/admin");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -87,7 +87,6 @@ async function createTransporter() {
 router.post("/forgot-password", async (req, res, next) => {
   const email = req.body.email;
   const role = req.body.userType;
- 
 
   try {
     let existingUser;
@@ -99,7 +98,6 @@ router.post("/forgot-password", async (req, res, next) => {
       existingUser = await adminmodel.findOne({ email: email });
     }
 
-    
     if (!existingUser) {
       return res
         .status(401)
@@ -114,14 +112,15 @@ router.post("/forgot-password", async (req, res, next) => {
     const transporterInstance = await createTransporter();
     const from = await AdminEmail.findOne({ status: true });
 
-    const relink=`${process.env.API_URL}/login/reset-password?token=${token}`
+    const relink = `${process.env.API_URL}/login/reset-password?token=${token}`;
     // console.log(from.email)
     var mailOptions = {
       from: from.email,
       to: existingUser.email,
+      subject : "Password Reset Request - SS Tax Mentors",
       html: `
       <p>Hello,</p>
-      <p>We received a request to reset your password. Please click the button below to reset your password:</p>
+      <p>We have received a request to reset your password for your SS Tax Mentors account. If you initiated this request, please click the link below to reset your password:</p>
       <p>
         <a href="${relink}" style="
           display: inline-block;
@@ -133,11 +132,10 @@ router.post("/forgot-password", async (req, res, next) => {
           border-radius: 5px;
         ">Reset Password</a>
       </p>
-      <p>If you did not request this, please ignore this email. Your password will remain unchanged.</p>
+      <p>If you did not request a password reset, please ignore this email, and your account will remain secure.</p>
       <p>Best regards,<br>SSTAX Mentors</p>
-    `
-  };
-   
+    `,
+    };
 
     transporterInstance.sendMail(mailOptions, function (error, info) {
       if (error) {
@@ -155,16 +153,14 @@ router.post("/forgot-password", async (req, res, next) => {
 });
 
 router.post("/login", async (req, res, next) => {
-  
   const hashedPassword = await bcrypt.hash(req.body.password, 10);
- 
+
   const email = req.body.email;
   const password = req.body.password;
 
   const role = req.body.userType;
   const latitude = req.body.latitude;
   const longitude = req.body.longitude;
-
 
   try {
     let existingUser;
@@ -180,14 +176,14 @@ router.post("/login", async (req, res, next) => {
       existingUser = await employee.findOne({ email: email });
       const entry = new employeeatten({
         email,
-        activity: 'login',
+        activity: "login",
         latitude: latitude,
         longitude: longitude,
         // ip: req.ip,
         // ip: req.socket.remoteAddress
-      }) 
-      console.log('entry',entry)
-      entry.save()
+      });
+      console.log("entry", entry);
+      entry.save();
       if (existingUser.status === "inactive") {
         return res.send({ message: "Employee has been blocked" });
       }
@@ -261,8 +257,6 @@ router.post("/login", async (req, res, next) => {
 //   `);
 // });
 
-
-
 // router.post("/reset-password", async (req, res, next) => {
 //   console.log("Request received with token:", req.query.token);
 //   console.log("hi");
@@ -304,31 +298,38 @@ router.post("/login", async (req, res, next) => {
 //   }
 // });
 
-
-
 router.post("/reset-password", async (req, res) => {
   const { token, password, userType } = req.body;
 
-
   if (!token || !password || !userType) {
-      return res.status(400).json({ success: false, message: "All fields are required" });
+    return res
+      .status(400)
+      .json({ success: false, message: "All fields are required" });
   }
 
   try {
-      const decoded = jwt.verify(token, "your-secret-key");
-      const hash = await bcrypt.hash(password, 10);
-      const filter = { _id: decoded.id };
-      const update = { password: hash };
-      const userModel = { user: registration, admin: adminmodel, employee: employee }[userType];
+    const decoded = jwt.verify(token, "your-secret-key");
+    const hash = await bcrypt.hash(password, 10);
+    const filter = { _id: decoded.id };
+    const update = { password: hash };
+    const userModel = {
+      user: registration,
+      admin: adminmodel,
+      employee: employee,
+    }[userType];
 
-      const updatedUser = await userModel.findOneAndUpdate(filter, update);
-      if (!updatedUser) {
-          return res.status(404).json({ success: false, message: "User not found" });
-      }
-      res.json({ success: true, message: "Password updated successfully" });
+    const updatedUser = await userModel.findOneAndUpdate(filter, update);
+    if (!updatedUser) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+    res.json({ success: true, message: "Password updated successfully" });
   } catch (error) {
-      console.log(error);
-      res.status(500).json({ success: false, message: "Error processing your request" });
+    console.log(error);
+    res
+      .status(500)
+      .json({ success: false, message: "Error processing your request" });
   }
 });
 

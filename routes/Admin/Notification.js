@@ -83,17 +83,12 @@ route.post(
               fileId: commonFileId, // Use the same ObjectId for all files
             })),
           });
-          const emailSettings = await EmailSettings.findOne({
-            title: "Notification",
-          });
+        
           const transporterInstance = await createTransporter();
   
-          const subject = emailSettings.subject;
-          const text = emailSettings.text;
           const from = await AdminEmail.findOne({ status: true });
           const clients=await User.find({isverified:true,status:'active'}).select('email');
-          console.log(clients)
-          // Sending email notification
+       
           const mailOptions = {
             from: from.email,
             to: clients.map(client=>client.email),

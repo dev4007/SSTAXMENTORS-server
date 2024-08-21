@@ -10,7 +10,8 @@ const History = require("../../models/History");
 const EmailSettings = require("../../models/EmailSettings");
 const nodemailer = require("nodemailer");
 const AdminEmail = require("../../models/AdminEmail");
-
+const user = require("../../models/registration");
+const Payment = require("../../models/payment");
 const generateUniqueFilename = (commonFileId, originalFilename) => {
   return `${commonFileId}_${originalFilename}`;
 };
@@ -65,6 +66,7 @@ route.post(
       if (role === "admin" || role === "employee") {
         const commonFileId = new mongoose.Types.ObjectId();
         const parsedSelectedClients = JSON.parse(selectedClients); // Parse the selectedClients string
+        console.log("🚀 ~ parsedSelectedClients:", parsedSelectedClients);
 
         // Create a new reminder with the common ObjectId for all files
         const reminderSchema = new Reminder({
@@ -78,49 +80,84 @@ route.post(
           })),
         });
 
-        const emailSettings = await EmailSettings.findOne({
-          title: "Reminder",
-        });
+        // const emailSettings = await EmailSettings.findOne({
+        //   title: "Reminder",
+        // });
         const transporterInstance = await createTransporter();
-        console.log(emailSettings);
 
-        const subject = emailSettings.subject;
-        const text = emailSettings.text;
+        // const subject = emailSettings.subject;
+        // const text = emailSettings.text;
         const from = await AdminEmail.findOne({ status: true });
         // Sending email notification
-        const mailOptions = {
-          from: from.email,
-          to: Array.isArray(selectedClients)
-            ? selectedClients.join(",")
-            : selectedClients,
-          subject: subject,
-          html: `
-    <p>Hello Dear,</p>
 
-    <p>We hope this message finds you well.</p>
+        const users = await user.find({
+          email: { $in: parsedSelectedClients },
+        });
 
-    <p>We would like to bring the following to your attention:</p>
+        // Function to create mail options for each user
+        function createMailOptions(user, payments) {
+          const paymentDetails = payments
+            .map(
+              (payment) => `
+              <p>This is a friendly reminder that payment for the invoice <strong>${
+                payment.invoiceId
+              }</strong>, totaling <strong>${
+                payment.amount
+              }</strong>, is still pending. The invoice was issued on <strong>${
+                payment.timestamp ? payment.timestamp.toDateString() : "N/A"
+              }</strong>, and we kindly request that the payment be made by <strong>${
+                payment.duedate ? payment.duedate.toDateString() : "N/A"
+              }</strong>.</p>
+            `
+            )
+            .join("<br>");
 
-    <ul>
-      <li><strong>Title:</strong> ${title}</li>
-      <li><strong>Description:</strong> ${description}</li>
-    </ul>
+          return {
+            from: from.email,
+            to: user.email,
+            subject: "Payment Reminder - Invoice from SS Tax Mentors",
+            html: `
+              <p>Dear ${user.firstname},</p>
+              <p>I hope this message finds you well.</p>
+              ${paymentDetails}
+              <p>You can make the payment using any of the following methods:</p>
+              <ul>
+                <li>Google Pay</li>
+                <li>PhonePe</li>
+                <li>Paytm</li>
+                <li>Bank Transfer</li>
+              </ul>
+              <p>We greatly value your business and would appreciate your prompt attention to this matter. If you have already made the payment, please disregard this reminder and kindly inform us of the payment details for our records.</p>
+              <p>If you have any questions or need assistance, feel free to reach out. We’re happy to help.</p>
+              <p>Best regards,</p>
+              <p>Team SS Tax Mentors</p>
+            `,
+          };
+        }
 
-    <p>This is a gentle reminder to complete any pending payments related to the above-mentioned matter. Timely payment ensures uninterrupted services.</p>
+        // Example usage
 
-    <p>Please find the attached image for your reference.</p>
+        // Send an email for each user
+        for (const user of users) {
+          try {
+            // Fetch payments for the current user
+            const payments = await Payment.find({ user: user._id }).exec();
 
-    <p>If you have any questions or need further clarification, feel free to contact us.</p>
+            if (payments.length === 0) {
+              console.log(`No payments found for user ${user._id}`);
+              continue;
+            }
 
-    <p>Thank you for your prompt attention to this matter.</p>
+            // Create mail options for the current user
+            const mailOptions = createMailOptions(user, payments);
 
-    <p>Best regards,</p>
-    <p>The SSTAX MENTORS Team</p>
-  `,
-        };
-
-        console.log(mailOptions);
-        await transporterInstance.sendMail(mailOptions);
+            // Send email
+            await transporterInstance.sendMail(mailOptions);
+            console.log(`Email sent to ${user.email}`);
+          } catch (error) {
+            console.error(`Error processing user ${user._id}:`, error);
+          }
+        }
 
         // Save the reminder schema
         await reminderSchema.save({ session });

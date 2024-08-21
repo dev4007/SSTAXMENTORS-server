@@ -44,6 +44,40 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 const Reminder = require("../../models/Reminder");
 
+async function getEmailAddress() {
+  try {
+    // Find the admin email with status set to true
+    const adminEmail = await AdminEmail.findOne({ status: true });
+
+    if (!adminEmail) {
+      throw new Error("Admin email with status true not found");
+    }
+
+    // Return the email address and password
+    return { email: adminEmail.email, password: adminEmail.password };
+  } catch (error) {
+    console.error("Error fetching email address:", error);
+    throw error; // Propagate the error to the caller
+  }
+}
+
+async function createTransporter() {
+  try {
+    const { email, password } = await getEmailAddress();
+
+    return nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: email,
+        pass: password,
+      },
+    });
+  } catch (error) {
+    console.error("Error creating transporter:", error);
+    throw error; // Propagate the error to the caller
+  }
+}
+
 
 
 route.get(
@@ -195,7 +229,6 @@ route.get(
   
           // Save the support ticket with file details
           await supportTicket.save({ session });
-          console.log('Yes')
           // Create history entry for support ticket creation
           const historyData = {
             activity: "Support Ticket Creation",
@@ -209,12 +242,34 @@ route.get(
           };
   
           const history = new History(historyData);
-  
+          const from = await AdminEmail.findOne({ status: true });
           console.log(history);
   
           // Save history entry within the transaction
           await history.save({ session });
+
+          const transporterInstance = await createTransporter();
   
+          const mailOptions = {
+            from: from.email,
+            to: clientEmail, // recipient address
+            subject: 'Support Ticket Created Successfully',
+            html: `
+              <p>Dear ${req.user.firstname},</p>
+              <p>Your support ticket has been created successfully with the following details:</p>
+              <ul>
+                <li>Ticket ID: ${ticketId}</li>
+                <li>Question Type: ${questionType}</li>
+                <li>Issue Message: ${issueMessage}</li>
+              </ul>
+              <p>Thank you for reaching out. We will get back to you shortly.</p>
+              <p>Best regards,</p>
+              <p>Support Team</p>
+            `,
+          };
+  
+          await transporterInstance.sendMail(mailOptions);
+          console.log('Email sent successfully');
           // If all operations are successful, commit the transaction
           await session.commitTransaction();
           session.endSession();

@@ -432,6 +432,11 @@ route.get("/getClients", authenticate, async (req, res, next) => {
           tanNumber,
         } = req.body;
         const companyType = JSON.parse(req.body.companyType);
+        const existing = await Company.findOne({ companyName });
+
+        if (existing) {
+          return res.status(400).json({ message: "companyName already exists" });
+        }
   
         const companyData = {
           companyName,

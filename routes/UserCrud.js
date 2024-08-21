@@ -1995,7 +1995,6 @@ route.post(
         // Save the support ticket with file details
         await supportTicket.save({ session });
 
-        console.log(req.user,"%%%%%%%%%")
 
         // Create history entry for support ticket creation
         const historyData = {
@@ -2010,11 +2009,34 @@ route.post(
         };
 
         const history = new History(historyData);
-
-        console.log(history);
-
-        // Save history entry within the transaction
+        const from = await AdminEmail.findOne({ status: true });
         await history.save({ session });
+
+        const transporterInstance = await createTransporter();
+  
+        const mailOptions = {
+          from: from.email,
+          to: clientEmail, // recipient address
+          subject: 'Support Ticket Created Successfully',
+          subject: 'Support Ticket Received - SS Tax Mentors',
+          html: `
+            <p>Dear ${req.user.firstname},</p>
+            <p>Thank you for reaching out to us. We have received your support request and have created a support ticket for the same.</p>
+            <p><strong>Ticket Number:</strong> ${ticketId}</p>
+            <p><strong>Issue:</strong> ${issueMessage}</p>
+            <p><strong>Date Received:</strong> ${new Date().toDateString()}</p>
+            <p>Our team is currently reviewing your request and will get back to you with a resolution as soon as possible. We aim to respond to all tickets within [Response Timeframe]. If you have any additional details to provide, feel free to reply to this email.</p>
+            <p>Thank you for your patience.</p>
+            <p>Best regards,</p>
+            <p>Team SS Tax Mentors</p>
+          `,
+        };
+
+
+        await transporterInstance.sendMail(mailOptions);
+        console.log('Email sent successfully');
+        // Save history entry within the transaction
+     
 
         // If all operations are successful, commit the transaction
         await session.commitTransaction();
