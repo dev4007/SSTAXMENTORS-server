@@ -1,17 +1,17 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const fileSchema = new mongoose.Schema({
   filename: String,
   type: String,
   size: Number,
-  name: String
+  name: String,
   // Add more metadata fields as needed
 });
 
 const companySchema = new mongoose.Schema({
   companyName: {
     type: String,
-    required: true
+    required: true,
   },
   companyType: {
     type: {
@@ -20,27 +20,35 @@ const companySchema = new mongoose.Schema({
       limitedLiabilityPartnerships: Boolean,
       privateLimitedCompany: Boolean,
       publicLimitedCompany: Boolean,
-      onePersonCompany: Boolean
-    }
+      onePersonCompany: Boolean,
+    },
   },
   companyTypeFiles: [fileSchema], // Storing file metadata
   address: {
     type: String,
-    required: true
+    required: true,
   },
   state: {
     type: String,
-    required: true
+    required: true,
+  },
+  companyHouseAddress: {
+    type: String,
+    required: true,
+  },
+  companyStreetAddress: {
+    type: String,
+    required: true,
   },
   country: {
     type: String,
-    required: true
+    required: true,
   },
   landmark: {
     type: String,
   },
   officeNumber: String,
-  
+
   email: {
     type: String,
     required: true,
@@ -48,23 +56,23 @@ const companySchema = new mongoose.Schema({
 
   gstNumber: {
     type: String,
-    required: true
+    required: true,
   },
   gstFile: [fileSchema], // Storing multiple GST file metadata
 
   panNumber: {
     type: String,
-    required: true
+    required: true,
   },
   panFile: [fileSchema], // Storing multiple PAN file metadata
 
   tanNumber: {
     type: String,
-    required: true
+    required: true,
   },
-  tanFile: [fileSchema] // Storing multiple TAN file metadata
+  tanFile: [fileSchema], // Storing multiple TAN file metadata
 });
 
-const Company = mongoose.model('companiesr', companySchema);
+const Company = mongoose.model("companiesr", companySchema);
 
 module.exports = Company;

@@ -517,13 +517,11 @@ route.delete("/deleteFile/:id", authenticate, async (req, res) => {
     }
 
     // Check if GST and file_data exist
-    if (
-      company.gstFile
-    ) {
+    if (company.gstFile) {
       // Remove the file data
       const updatedCompany = await Company.findByIdAndUpdate(
         id,
-        { $unset: { "gstFile": "" } }, // Use $unset to remove file_data
+        { $unset: { gstFile: "" } }, // Use $unset to remove file_data
         { new: true }
       );
 
@@ -555,7 +553,7 @@ route.post(
       // Fetch the company by ID
       const company = await Company.findById(companyId).session(session);
       if (!company) {
-        throw new Error('Company not found');
+        throw new Error("Company not found");
       }
 
       // Function to handle file uploads
@@ -567,7 +565,7 @@ route.post(
             file.originalname
           );
 
-           // Save metadata in the company schema
+          // Save metadata in the company schema
           company[fieldName] = company[fieldName] || []; // Initialize if undefined
           const metadata = {
             name: file.originalname,
@@ -599,9 +597,12 @@ route.post(
 
       // Save metadata and data for GST files if provided
       let gstFileMetadata = [];
-   
+
       if (req.files["gstFile"]) {
-        gstFileMetadata = await handleFileUploads("gstFile", req.files["gstFile"]);
+        gstFileMetadata = await handleFileUploads(
+          "gstFile",
+          req.files["gstFile"]
+        );
       }
 
       // Save the updated company document
@@ -612,7 +613,7 @@ route.post(
 
       res.status(200).json({
         message: "GST files updated successfully",
-        gstFiles: gstFileMetadata
+        gstFiles: gstFileMetadata,
       });
     } catch (error) {
       console.error("Error updating GST files:", error);
@@ -642,6 +643,8 @@ route.post(
         officeNumber,
         address,
         state,
+        companyHouseAddress,
+        companyStreetAddress,
         country,
         gstNumber,
         panNumber,
@@ -660,6 +663,8 @@ route.post(
         companyType: companyType,
         address,
         state,
+        companyHouseAddress,
+        companyStreetAddress,
         country,
         officeNumber,
         email: req.user.email,
@@ -708,7 +713,6 @@ route.post(
         }
       };
 
-
       // Save metadata and data for company type files
       if (req.files["companyTypeFiles"]) {
         await handleFileUploads(
@@ -749,27 +753,23 @@ route.post(
   }
 );
 
-route.get(
-  "/previewCompany/:filename",
-  authenticate,
-  async (req, res, next) => {
-    try {
-      const { filename } = req.params;
-      const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
-        bucketName: "company",
-      });
-      const downloadStream = bucket.openDownloadStreamByName(filename);
+route.get("/previewCompany/:filename", authenticate, async (req, res, next) => {
+  try {
+    const { filename } = req.params;
+    const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+      bucketName: "company",
+    });
+    const downloadStream = bucket.openDownloadStreamByName(filename);
 
-      res.set("Content-Type", "application/pdf");
-      downloadStream.pipe(res);
-    } catch (error) {
-      console.error("Error previewing company file:", error);
-      if (error.name === "FileNotFound") {
-        return res.status(404).json({ error: "Company file not found" });
-      }
-      res.status(500).json({ error: "Internal Server Error" });
+    res.set("Content-Type", "application/pdf");
+    downloadStream.pipe(res);
+  } catch (error) {
+    console.error("Error previewing company file:", error);
+    if (error.name === "FileNotFound") {
+      return res.status(404).json({ error: "Company file not found" });
     }
+    res.status(500).json({ error: "Internal Server Error" });
   }
-);
+});
 
 module.exports = route;
