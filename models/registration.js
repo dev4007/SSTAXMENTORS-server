@@ -21,6 +21,16 @@ const registration=new mongoose.Schema({
         type:String,
         required:true
     },
+    houseAddress:
+    {
+        type:String,
+        required:true
+    },
+    streetAddress:
+    {
+        type:String,
+        required:true
+    },
     landmark:
     {
         type:String,
